@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Emma Study — Parent View</title>
+    <style>
+      :root {
+        --bg: #f7f6f2;
+        --surface: #ffffff;
+        --surface-2: #efeee8;
+        --ink: #22302b;
+        --ink-soft: #55645d;
+        --line: #dddcd2;
+        --accent: #2e7d5b;
+        --accent-soft: #e2efe7;
+        --warn: #b3261e;
+        --warn-soft: #fbe9e7;
+        --amber: #8a5a00;
+        --amber-soft: #fbf0d3;
+        --chip-mastered-bg: #2e7d5b;
+        --chip-mastered-ink: #ffffff;
+        --chip-learning-bg: #e2efe7;
+        --chip-learning-ink: #226147;
+        --chip-none-bg: #efeee8;
+        --chip-none-ink: #6b7670;
+        --bar: #2e7d5b;
+        --bar-zero: #dddcd2;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #161a18;
+          --surface: #202623;
+          --surface-2: #2a302c;
+          --ink: #e8ece9;
+          --ink-soft: #a7b3ac;
+          --line: #39423d;
+          --accent: #6fce9f;
+          --accent-soft: #24402f;
+          --warn: #ff9d94;
+          --warn-soft: #4a2320;
+          --amber: #f0c56b;
+          --amber-soft: #463a1c;
+          --chip-mastered-bg: #2e7d5b;
+          --chip-mastered-ink: #ffffff;
+          --chip-learning-bg: #24402f;
+          --chip-learning-ink: #8fd8ae;
+          --chip-none-bg: #2a302c;
+          --chip-none-ink: #93a199;
+          --bar: #6fce9f;
+          --bar-zero: #39423d;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+        line-height: 1.45;
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 28px 18px 40px;
+      }
+      h1 {
+        font-size: 1.7rem;
+        line-height: 1.15;
+        margin: 0 0 6px;
+        letter-spacing: -0.01em;
+      }
+      .subtitle {
+        margin: 0 0 28px;
+        color: var(--ink-soft);
+        font-size: 0.95rem;
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin: 0 0 10px;
+        letter-spacing: 0.01em;
+      }
+      section { margin-bottom: 30px; }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+      .card + .card { margin-top: 10px; }
+      .quiet { color: var(--ink-soft); font-size: 0.92rem; margin: 0; }
+
+      /* Needs attention */
+      .flag-row {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .flag-row:last-child { border-bottom: none; padding-bottom: 2px; }
+      .flag-row:first-child { padding-top: 2px; }
+      .flag-where { font-size: 0.82rem; color: var(--ink-soft); }
+      .flag-topic { font-weight: 600; font-size: 1rem; }
+      .flag-nums { font-size: 0.9rem; }
+      .tag {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 999px;
+        margin-bottom: 4px;
+        align-self: flex-start;
+      }
+      .tag-cw { background: var(--warn-soft); color: var(--warn); }
+      .tag-weak { background: var(--amber-soft); color: var(--amber); }
+      .cw-num { color: var(--warn); font-weight: 700; }
+
+      /* Mastery */
+      .unit-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .unit-title { font-weight: 600; font-size: 0.98rem; }
+      .unit-subject { font-size: 0.78rem; color: var(--ink-soft); display: block; font-weight: 400; }
+      .unit-stats { margin: 6px 0 0; font-size: 0.9rem; color: var(--ink-soft); }
+      .unit-stats .cw { color: var(--warn); font-weight: 700; }
+      .chip {
+        flex: none;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        padding: 3px 10px;
+        border-radius: 999px;
+      }
+      .chip-mastered { background: var(--chip-mastered-bg); color: var(--chip-mastered-ink); }
+      .chip-learning { background: var(--chip-learning-bg); color: var(--chip-learning-ink); }
+      .chip-none { background: var(--chip-none-bg); color: var(--chip-none-ink); }
+
+      /* Topic detail */
+      .topic-group-subject {
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        margin: 18px 0 6px;
+      }
+      .topic-group-subject:first-child { margin-top: 0; }
+      .topic-unit { font-weight: 600; font-size: 0.95rem; margin: 12px 0 2px; }
+      .topic-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.92rem;
+      }
+      .topic-row:last-child { border-bottom: none; }
+      .topic-name { min-width: 0; }
+      .topic-name .warn-mark { color: var(--warn); font-weight: 700; }
+      .topic-nums { text-align: right; color: var(--ink-soft); white-space: nowrap; font-size: 0.86rem; }
+      .topic-nums .acc { color: var(--ink); font-weight: 600; }
+
+      /* Activity */
+      .strip {
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+        height: 92px;
+        margin-top: 6px;
+      }
+      .strip .col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        height: 100%;
+        gap: 5px;
+        min-width: 0;
+      }
+      .strip .bar {
+        width: 100%;
+        max-width: 26px;
+        border-radius: 3px 3px 0 0;
+        background: var(--bar);
+        min-height: 3px;
+      }
+      .strip .bar.zero { background: var(--bar-zero); }
+      .strip .day-label { font-size: 0.62rem; color: var(--ink-soft); white-space: nowrap; }
+      .strip .day-count { font-size: 0.66rem; color: var(--ink-soft); font-weight: 600; }
+      .session-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.92rem;
+      }
+      .session-row:last-child { border-bottom: none; padding-bottom: 2px; }
+      .session-row:first-child { padding-top: 2px; }
+      .session-what { min-width: 0; }
+      .session-mode { display: block; font-size: 0.78rem; color: var(--ink-soft); }
+      .session-score { text-align: right; white-space: nowrap; }
+      .session-score .score { font-weight: 700; }
+      .session-score .date { display: block; font-size: 0.78rem; color: var(--ink-soft); }
+
+      .state-box {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 22px 18px;
+        text-align: center;
+        color: var(--ink-soft);
+      }
+      .hidden { display: none; }
+      footer {
+        margin-top: 34px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        color: var(--ink-soft);
+        font-size: 0.82rem;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Emma's Study Progress</h1>
+      <p class="subtitle">Parent view — updated automatically as she studies. Shows summaries only, never individual answers.</p>
+
+      <div id="loading" class="state-box">Loading progress…</div>
+      <div id="load-error" class="state-box hidden">Couldn't load progress right now — try reloading.</div>
+      <div id="empty" class="state-box hidden">No study activity yet — progress will appear here as Emma studies.</div>
+
+      <div id="content" class="hidden">
+        <section>
+          <h2>Needs attention</h2>
+          <div class="card" id="attention-card"></div>
+        </section>
+
+        <section>
+          <h2>Mastery by unit</h2>
+          <div id="mastery-list"></div>
+        </section>
+
+        <section>
+          <h2>Topic detail</h2>
+          <div class="card" id="topic-card"></div>
+        </section>
+
+        <section>
+          <h2>Activity — last 14 days</h2>
+          <div class="card">
+            <div class="strip" id="activity-strip"></div>
+            <p class="quiet" id="activity-total" style="margin-top:10px;"></p>
+          </div>
+        </section>
+
+        <section>
+          <h2>Recent sessions</h2>
+          <div class="card" id="sessions-card"></div>
+        </section>
+      </div>
+
+      <footer>Aggregates only · Raw answers are never exposed here.</footer>
+    </main>
+
+    <script>
+      var BASE = "https://ysxipmxwfupqzywhevji.supabase.co/rest/v1";
+      var KEY = "sb_publishable_CqAHlsNUaLDEahptk4msZg_xNxp0ywM";
+      var SID = "emma-7e61cf874518";
+
+      var SUBJECT_LABELS = {
+        science: "Science",
+        math: "Math",
+        social_studies: "Social Studies",
+        ela: "ELA",
+        french: "French"
+      };
+      function subjectLabel(s) {
+        return SUBJECT_LABELS[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "");
+      }
+      function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+      }
+      function pct(correct, total) {
+        if (!total) return null;
+        return Math.round((correct / total) * 100);
+      }
+      function fetchTable(path) {
+        return fetch(BASE + "/" + path, {
+          headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Accept-Profile": "study" }
+        }).then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        });
+      }
+
+      var loadingEl = document.getElementById("loading");
+      var errorEl = document.getElementById("load-error");
+      var emptyEl = document.getElementById("empty");
+      var contentEl = document.getElementById("content");
+
+      Promise.all([
+        fetchTable("study_units?select=id,subject,title"),
+        fetchTable("study_mastery?select=unit_id,answers,correct,days,confident_wrong,state&study_id=eq." + SID),
+        fetchTable("study_topic_mastery?select=unit_id,topic,answers_sure,correct_sure,answers_guessed,correct_guessed,confident_wrong,days_sure&study_id=eq." + SID),
+        fetchTable("study_daily_activity?select=day,answers,correct,sure_answers,guessed_answers&study_id=eq." + SID + "&order=day.desc&limit=60"),
+        fetchTable("study_attempt_summary?select=unit_id,mode,score,total,created_at&study_id=eq." + SID + "&order=created_at.desc&limit=10")
+      ]).then(function (results) {
+        var units = results[0], mastery = results[1], topics = results[2], daily = results[3], attempts = results[4];
+        loadingEl.classList.add("hidden");
+
+        var hasProgress = mastery.length || topics.length || daily.length || attempts.length;
+        if (!hasProgress) {
+          emptyEl.classList.remove("hidden");
+          return;
+        }
+        contentEl.classList.remove("hidden");
+
+        var unitById = {};
+        units.forEach(function (u) { unitById[u.id] = u; });
+        function where(unitId) {
+          var u = unitById[unitId];
+          if (!u) return "";
+          return subjectLabel(u.subject) + " · " + u.title;
+        }
+
+        renderAttention(topics, unitById);
+        renderMastery(units, mastery);
+        renderTopics(units, topics);
+        renderActivity(daily);
+        renderSessions(attempts, unitById);
+      }).catch(function () {
+        loadingEl.classList.add("hidden");
+        errorEl.classList.remove("hidden");
+      });
+
+      function renderAttention(topics, unitById) {
+        var card = document.getElementById("attention-card");
+        var flagged = [];
+        topics.forEach(function (t) {
+          var acc = t.answers_sure ? t.correct_sure / t.answers_sure : null;
+          if (t.confident_wrong > 0) {
+            flagged.push({ t: t, kind: "cw", acc: acc });
+          } else if (t.answers_sure >= 3 && acc !== null && acc < 0.7) {
+            flagged.push({ t: t, kind: "weak", acc: acc });
+          }
+        });
+        flagged.sort(function (a, b) {
+          if (a.kind !== b.kind) return a.kind === "cw" ? -1 : 1;
+          if (a.kind === "cw" && b.t.confident_wrong !== a.t.confident_wrong) {
+            return b.t.confident_wrong - a.t.confident_wrong;
+          }
+          var aa = a.acc === null ? 1 : a.acc, bb = b.acc === null ? 1 : b.acc;
+          return aa - bb;
+        });
+        if (!flagged.length) {
+          card.innerHTML = '<p class="quiet">Nothing flagged — no confident-and-wrong topics and no weak topics yet.</p>';
+          return;
+        }
+        card.innerHTML = flagged.map(function (f) {
+          var t = f.t;
+          var tag = f.kind === "cw"
+            ? '<span class="tag tag-cw">Confident &amp; wrong</span>'
+            : '<span class="tag tag-weak">Weak so far</span>';
+          var nums = [];
+          if (t.confident_wrong > 0) {
+            nums.push('<span class="cw-num">' + t.confident_wrong + " confident-wrong</span>");
+          }
+          if (t.answers_sure > 0) {
+            nums.push(t.correct_sure + "/" + t.answers_sure + " sure correct (" + pct(t.correct_sure, t.answers_sure) + "%)");
+          }
+          return '<div class="flag-row">' + tag +
+            '<span class="flag-where">' + esc(where2(t.unit_id, unitById)) + "</span>" +
+            '<span class="flag-topic">' + esc(t.topic) + "</span>" +
+            '<span class="flag-nums">' + nums.join(" · ") + "</span></div>";
+        }).join("");
+      }
+      function where2(unitId, unitById) {
+        var u = unitById[unitId];
+        if (!u) return "";
+        return subjectLabel(u.subject) + " · " + u.title;
+      }
+
+      function renderMastery(units, mastery) {
+        var list = document.getElementById("mastery-list");
+        var byUnit = {};
+        mastery.forEach(function (m) { byUnit[m.unit_id] = m; });
+        list.innerHTML = units.map(function (u) {
+          var m = byUnit[u.id];
+          var chip, stats;
+          if (!m) {
+            chip = '<span class="chip chip-none">Not started</span>';
+            stats = "No sure answers yet";
+          } else if (m.state === "mastered") {
+            chip = '<span class="chip chip-mastered">Mastered</span>';
+            stats = masteryStats(m);
+          } else {
+            chip = '<span class="chip chip-learning">Learning</span>';
+            stats = masteryStats(m);
+          }
+          return '<div class="card"><div class="unit-head"><span class="unit-title">' +
+            '<span class="unit-subject">' + esc(subjectLabel(u.subject)) + "</span>" +
+            esc(u.title) + "</span>" + chip + "</div>" +
+            '<p class="unit-stats">' + stats + "</p></div>";
+        }).join("");
+      }
+      function masteryStats(m) {
+        var parts = [];
+        parts.push(m.answers + (m.answers === 1 ? " sure answer" : " sure answers"));
+        var p = pct(m.correct, m.answers);
+        parts.push(p === null ? "— correct" : p + "% correct");
+        parts.push(m.days + " of 2+ days");
+        var s = parts.join(" · ");
+        if (m.confident_wrong > 0) {
+          s += ' · <span class="cw">' + m.confident_wrong + " confident-wrong</span>";
+        }
+        return s;
+      }
+
+      function renderTopics(units, topics) {
+        var card = document.getElementById("topic-card");
+        if (!topics.length) {
+          card.innerHTML = '<p class="quiet">No topic data yet.</p>';
+          return;
+        }
+        var byUnit = {};
+        topics.forEach(function (t) {
+          (byUnit[t.unit_id] = byUnit[t.unit_id] || []).push(t);
+        });
+        // Group units by subject, preserving study_units order.
+        var subjectOrder = [];
+        var unitsBySubject = {};
+        units.forEach(function (u) {
+          if (!byUnit[u.id]) return;
+          if (!unitsBySubject[u.subject]) { unitsBySubject[u.subject] = []; subjectOrder.push(u.subject); }
+          unitsBySubject[u.subject].push(u);
+        });
+        // Any topics for units not in study_units go last under their raw id.
+        var known = {};
+        units.forEach(function (u) { known[u.id] = true; });
+        var orphanUnits = Object.keys(byUnit).filter(function (id) { return !known[id]; });
+
+        var html = "";
+        subjectOrder.forEach(function (subject) {
+          html += '<div class="topic-group-subject">' + esc(subjectLabel(subject)) + "</div>";
+          unitsBySubject[subject].forEach(function (u) {
+            html += topicUnitHtml(u.title, byUnit[u.id]);
+          });
+        });
+        orphanUnits.forEach(function (id) {
+          html += topicUnitHtml(id, byUnit[id]);
+        });
+        card.innerHTML = html;
+      }
+      function topicUnitHtml(title, rows) {
+        var sorted = rows.slice().sort(function (a, b) {
+          if (b.confident_wrong !== a.confident_wrong) return b.confident_wrong - a.confident_wrong;
+          var aa = a.answers_sure ? a.correct_sure / a.answers_sure : 2;
+          var bb = b.answers_sure ? b.correct_sure / b.answers_sure : 2;
+          if (aa !== bb) return aa - bb;
+          return String(a.topic).localeCompare(String(b.topic));
+        });
+        var html = '<div class="topic-unit">' + esc(title) + "</div>";
+        html += sorted.map(function (t) {
+          var name = esc(t.topic) + (t.confident_wrong > 0 ? ' <span class="warn-mark" title="Confident and wrong">⚠</span>' : "");
+          var nums;
+          if (t.answers_sure > 0) {
+            nums = '<span class="acc">' + pct(t.correct_sure, t.answers_sure) + "% sure</span> · " +
+              t.correct_sure + "/" + t.answers_sure + " sure";
+            if (t.answers_guessed > 0) nums += " · " + t.answers_guessed + " guessed";
+            if (t.confident_wrong > 0) nums += ' · <span class="cw-num">' + t.confident_wrong + " confident-wrong</span>";
+          } else if (t.answers_guessed > 0) {
+            nums = "only guessed so far · " + t.answers_guessed + " guessed";
+          } else {
+            nums = "no answers yet";
+          }
+          return '<div class="topic-row"><span class="topic-name">' + name + '</span><span class="topic-nums">' + nums + "</span></div>";
+        }).join("");
+        return html;
+      }
+
+      function renderActivity(daily) {
+        var strip = document.getElementById("activity-strip");
+        var byDay = {};
+        daily.forEach(function (d) { byDay[d.day] = d; });
+        var days = [];
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (var i = 13; i >= 0; i--) {
+          var d = new Date(today.getTime() - i * 86400000);
+          var key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+          days.push({ date: d, key: key, row: byDay[key] || null });
+        }
+        var max = 1;
+        days.forEach(function (x) { if (x.row && x.row.answers > max) max = x.row.answers; });
+        var totalAnswers = 0, activeDays = 0;
+        strip.innerHTML = days.map(function (x) {
+          var n = x.row ? x.row.answers : 0;
+          totalAnswers += n;
+          if (n > 0) activeDays++;
+          var h = n > 0 ? Math.max(10, Math.round((n / max) * 62)) : 3;
+          var label = x.date.toLocaleDateString(undefined, { weekday: "narrow" });
+          var title = x.date.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ": " + n + (n === 1 ? " answer" : " answers");
+          return '<div class="col" title="' + esc(title) + '"><span class="day-count">' + (n > 0 ? n : "") + '</span>' +
+            '<div class="bar' + (n > 0 ? "" : " zero") + '" style="height:' + h + 'px"></div>' +
+            '<span class="day-label">' + esc(label) + "</span></div>";
+        }).join("");
+        document.getElementById("activity-total").textContent =
+          totalAnswers + (totalAnswers === 1 ? " answer" : " answers") + " across " +
+          activeDays + (activeDays === 1 ? " active day" : " active days") + " in the last 14 days.";
+      }
+
+      function renderSessions(attempts, unitById) {
+        var card = document.getElementById("sessions-card");
+        if (!attempts.length) {
+          card.innerHTML = '<p class="quiet">No quiz sessions yet.</p>';
+          return;
+        }
+        card.innerHTML = attempts.map(function (a) {
+          var isCold = a.mode === "cold-check" || a.unit_id === "cold-check";
+          var title = isCold ? "Cold check" : (unitById[a.unit_id] ? unitById[a.unit_id].title : a.unit_id);
+          var modeLabel = isCold ? "Cold check" : "Unit quiz";
+          var when = new Date(a.created_at);
+          var dateStr = when.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+          return '<div class="session-row"><span class="session-what">' + esc(title) +
+            '<span class="session-mode">' + esc(modeLabel) + "</span></span>" +
+            '<span class="session-score"><span class="score">' + a.score + "/" + a.total + "</span>" +
+            '<span class="date">' + esc(dateStr) + "</span></span></div>";
+        }).join("");
+      }
+    </script>
+  </body>
+</html>
