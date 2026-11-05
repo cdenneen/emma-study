@@ -109,6 +109,12 @@
       .due-badge.clear { background: var(--good-soft); color: var(--good); }
       .due-badge.soon { background: var(--surface-2); color: var(--ink-soft); }
       .unit-arrow { flex-shrink: 0; font-weight: 900; color: var(--ink-soft); }
+      .mastery-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+      .mastery-badge { font-size: 0.72rem; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+      .mastery-badge.not-started { background: var(--surface-2); color: var(--ink-soft); }
+      .mastery-badge.learning { background: var(--warn-soft); color: var(--warn); }
+      .mastery-badge.mastered { background: var(--good-soft); color: var(--good); }
+      .mastery-progress { font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); }
 
       .score-line {
         background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
@@ -174,6 +180,27 @@
       .choice:disabled { cursor: default; }
       .choice.correct { border-color: var(--good); background: var(--good-soft); }
       .choice.wrong { border-color: var(--bad); background: var(--bad-soft); }
+      .choice.selected { border-color: var(--accent); background: var(--accent-soft); }
+      .confidence-box { display: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin: 4px 0 8px; }
+      .confidence-box.show { display: block; }
+      .confidence-box .conf-label { font-weight: 900; font-size: 1rem; margin: 0 0 10px; }
+      .confidence-box .conf-sub { font-weight: 600; color: var(--ink-soft); font-size: 0.9rem; margin: 0 0 12px; }
+      .conf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .conf-btn { border: 2px solid var(--line); background: var(--surface); color: var(--ink); font-family: inherit; font-weight: 900; font-size: 1.02rem; padding: 14px 10px; border-radius: 14px; cursor: pointer; min-height: 54px; }
+      .conf-btn.sure { border-color: var(--accent); }
+      .conf-btn:active { transform: scale(0.99); }
+      .conf-btn:disabled { opacity: 0.5; cursor: default; }
+      .confidence-note { margin-top: 10px !important; padding: 10px 12px; border-radius: 10px; background: var(--warn-soft); color: var(--ink) !important; font-weight: 800 !important; }
+      .confidence-note.guessed-right { background: var(--accent-soft); }
+      .results-list { text-align: left; margin: 18px 0 6px; display: none; }
+      .results-list.show { display: block; }
+      .results-list h3 { font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 10px; }
+      .result-item { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; background: var(--bg); }
+      .result-item .r-meta { font-size: 0.78rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); margin-bottom: 4px; }
+      .result-item .r-prompt { font-weight: 700; font-size: 0.95rem; line-height: 1.4; margin-bottom: 4px; }
+      .result-item .r-verdict { font-weight: 800; font-size: 0.9rem; }
+      .result-item .r-verdict.right { color: var(--good); }
+      .result-item .r-verdict.wrong { color: var(--bad); }
       .explain {
         background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
         padding: 18px; margin: 16px 0; display: none;
@@ -216,13 +243,12 @@
         <h1>What are we studying?</h1>
         <p class="sub">Pick a subject and a unit. The number on each unit is how many flashcards are due today.</p>
 
-        <button class="big-btn" id="btn-review-all">Review all subjects<small id="review-all-sub">A mixed session of every card that's due today</small></button>
+        <button class="big-btn" id="btn-cold-check">Cold check<small id="cold-check-sub">10 mixed questions from all your subjects — no hints about where they're from</small></button>
+        <button class="big-btn secondary" id="btn-review-all">Review all flashcards<small id="review-all-sub">A mixed session of every card that's due today</small></button>
 
         <div id="units-container">
           <div class="score-line">Loading your subjects…</div>
         </div>
-
-        <p class="footnote">Your flashcard progress syncs automatically, so you can switch between your phone and computer and pick up where you left off. No sign-in needed.</p>
       </section>
 
       <!-- UNIT HOME -->
@@ -293,9 +319,18 @@
         <span class="topic-tag" id="quiz-topic"></span>
         <p class="q-prompt" id="quiz-prompt"></p>
         <div id="quiz-choices"></div>
+        <div class="confidence-box" id="quiz-confidence">
+          <p class="conf-label">How sure are you?</p>
+          <p class="conf-sub">Tap one to check your answer. You can change your choice above first.</p>
+          <div class="conf-row">
+            <button class="conf-btn sure" id="btn-conf-sure" type="button">Sure</button>
+            <button class="conf-btn" id="btn-conf-guess" type="button">Guessing</button>
+          </div>
+        </div>
         <div class="explain" id="quiz-explain">
           <div class="verdict" id="quiz-verdict"></div>
           <p id="quiz-explain-text"></p>
+          <p id="quiz-confidence-note" class="confidence-note" style="display:none"></p>
         </div>
         <button class="next-btn" id="btn-next">Next question →</button>
       </section>
@@ -305,8 +340,13 @@
         <div class="done-box">
           <div class="big" id="quiz-final-score"></div>
           <p id="quiz-final-text"></p>
+          <div class="results-list" id="quiz-results-list">
+            <h3>Question by question</h3>
+            <div id="quiz-results-items"></div>
+          </div>
           <button class="big-btn" id="btn-quiz-again">Take it again</button>
           <button class="big-btn secondary" id="btn-quiz-done-back" style="margin-bottom:0">Back to unit</button>
+          <button class="big-btn secondary" id="btn-quiz-done-home" style="margin-bottom:0; display:none">Back to all subjects</button>
         </div>
       </section>
 
@@ -525,7 +565,7 @@
         });
       }
 
-      function syncAnswer(unitId, qIdx, picked, right, topic) {
+      function syncAnswer(unitId, qIdx, picked, right, topic, confidence) {
         sbFetch("/study_answers", {
           method: "POST",
           body: JSON.stringify({
@@ -534,21 +574,66 @@
             question_index: qIdx + 1,
             topic: topic,
             correct: !!right,
-            chosen_index: picked
+            chosen_index: picked,
+            confidence: confidence || null
           })
         });
       }
 
-      function syncAttempt(unitId, score, total) {
+      function syncAttempt(unitId, score, total, mode) {
         sbFetch("/study_quiz_attempts", {
           method: "POST",
           body: JSON.stringify({
             study_id: STUDY_ID,
             unit_id: unitId,
             score: score,
-            total: total
+            total: total,
+            mode: mode || "unit"
           })
         });
+      }
+
+      /* ---------- Local answer history + mastery ----------
+         Every practice answer is kept locally so mastery survives
+         offline and can be computed per unit across days. */
+      var HISTORY_KEY = "emma-answer-history-v1";
+      function loadHistory() {
+        var h = loadJSON(HISTORY_KEY, []);
+        return (h instanceof Array) ? h : [];
+      }
+      function todayStr(d) {
+        var dt = d ? new Date(d) : new Date();
+        var m = String(dt.getMonth() + 1); if (m.length < 2) m = "0" + m;
+        var day = String(dt.getDate()); if (day.length < 2) day = "0" + day;
+        return dt.getFullYear() + "-" + m + "-" + day;
+      }
+      function recordLocalAnswer(unitId, topic, correct, confidence) {
+        try {
+          var h = loadHistory();
+          h.push({ unit_id: unitId, topic: topic || null, correct: !!correct, confidence: confidence || null, date: todayStr(), ts: Date.now() });
+          /* Keep the log bounded but generous — mastery only needs recent history. */
+          if (h.length > 2000) h = h.slice(h.length - 2000);
+          saveJSON(HISTORY_KEY, h);
+        } catch (e) {}
+      }
+      function masteryFor(unitId) {
+        var h = loadHistory();
+        var entries = h.filter(function (e) { return e && e.unit_id === unitId; });
+        var total = entries.length;
+        var correctCount = entries.filter(function (e) { return e.correct; }).length;
+        var days = {};
+        entries.forEach(function (e) { if (e.date) days[e.date] = true; });
+        var dayCount = Object.keys(days).length;
+        var accuracy = total ? correctCount / total : 0;
+        var state = "not-started";
+        if (total > 0) state = "learning";
+        if (total >= 8 && accuracy >= 0.8 && dayCount >= 2) state = "mastered";
+        return { total: total, correct: correctCount, days: dayCount, accuracy: accuracy, state: state };
+      }
+      function masteryLabel(state) {
+        if (state === "mastered") return "Mastered ✓";
+        if (state === "learning") return "Learning";
+        return "Not started";
       }
 
       /* Merge remote card-state rows for one unit into the local cache. */
@@ -692,6 +777,20 @@
             meta.textContent = u.quarter;
             main.appendChild(meta);
           }
+          var mRow = document.createElement("span");
+          mRow.className = "mastery-row";
+          mRow.id = "mastery-row-" + u.id;
+          var mBadge = document.createElement("span");
+          mBadge.className = "mastery-badge not-started";
+          mBadge.id = "mastery-badge-" + u.id;
+          mBadge.textContent = "Not started";
+          var mProg = document.createElement("span");
+          mProg.className = "mastery-progress";
+          mProg.id = "mastery-progress-" + u.id;
+          mProg.textContent = "Mastery: 0/8 answers · 0 of 2 days";
+          mRow.appendChild(mBadge);
+          mRow.appendChild(mProg);
+          main.appendChild(mRow);
           btn.appendChild(main);
           var badge = document.createElement("span");
           badge.className = "due-badge soon";
@@ -709,7 +808,24 @@
         updateReviewAllSub();
       }
 
+      function updateMasteryBadges() {
+        allUnits.forEach(function (u) {
+          var badge = document.getElementById("mastery-badge-" + u.id);
+          var prog = document.getElementById("mastery-progress-" + u.id);
+          if (!badge || !prog) return;
+          var m = masteryFor(u.id);
+          badge.className = "mastery-badge " + m.state;
+          badge.textContent = masteryLabel(m.state);
+          var shownAnswers = Math.min(m.total, 8);
+          var shownDays = Math.min(m.days, 2);
+          var txt = "Mastery: " + shownAnswers + "/8 answers · " + shownDays + " of 2 days";
+          if (m.total > 0) txt += " · " + Math.round(m.accuracy * 100) + "% correct";
+          prog.textContent = txt;
+        });
+      }
+
       function updateHomeBadges() {
+        updateMasteryBadges();
         allUnits.forEach(function (u) {
           var badge = document.getElementById("due-badge-" + u.id);
           if (!badge) return;
@@ -1008,74 +1124,228 @@
         }
       }
 
-      /* ---------- Quiz ---------- */
+      /* ---------- Quiz (unit quizzes + cold check) ----------
+         Choices are shuffled per question per attempt. Grading always
+         compares the ORIGINAL choice index against the stored
+         answer_index, so shuffling can never change what's correct. */
       var qPos = 0, qScore = 0, qAnswered = false;
+      var quizMode = "unit"; /* "unit" | "cold-check" */
+      var quizItems = [];    /* { unitId, qIdx, topic, prompt, choices, correct, explain, unitTitle, subject } */
+      var qDisplayOrder = []; /* display position -> original choice index */
+      var qDisplayCorrect = -1; /* display position of the correct choice */
+      var qSelectedDisplay = -1;
+      var qResults = [];     /* { unitId, unitTitle, subject, topic, prompt, correct, confidence } */
+
+      function buildDisplayOrder(n) {
+        var idx = [];
+        for (var i = 0; i < n; i++) idx.push(i);
+        return shuffle(idx);
+      }
 
       function startQuiz() {
         if (!currentQuestions.length) return;
-        qPos = 0; qScore = 0;
+        quizMode = "unit";
+        quizItems = currentQuestions.map(function (q, i) {
+          var u = unitById(currentUnitId);
+          return { unitId: currentUnitId, qIdx: i, topic: q.topic, prompt: q.prompt, choices: q.choices, correct: q.correct, explain: q.explain, unitTitle: u ? u.title : "", subject: u ? (u.subject || "") : "" };
+        });
+        qPos = 0; qScore = 0; qResults = [];
         show("view-quiz");
         renderQuestion();
       }
 
+      function startColdCheck() {
+        var btn = document.getElementById("btn-cold-check");
+        var sub = document.getElementById("cold-check-sub");
+        btn.disabled = true;
+        var oldSub = sub.textContent;
+        sub.textContent = "Picking 10 questions from all your subjects…";
+        var jobs = allUnits.map(function (u) {
+          return fetchUnitContent(u.id, true).then(function (content) {
+            return { unit: u, questions: content.questions || [] };
+          });
+        });
+        Promise.all(jobs).then(function (results) {
+          btn.disabled = false;
+          sub.textContent = oldSub;
+          var pool = [];
+          results.forEach(function (res) {
+            res.questions.forEach(function (q, qi) {
+              if (!q || !(q.choices instanceof Array) || q.choices.length < 2) return;
+              pool.push({ unitId: res.unit.id, qIdx: qi, topic: q.topic, prompt: q.prompt, choices: q.choices, correct: q.correct, explain: q.explain, unitTitle: res.unit.title || res.unit.id, subject: res.unit.subject || "" });
+            });
+          });
+          if (!pool.length) {
+            sub.textContent = "No practice questions are available yet — try a unit quiz instead.";
+            return;
+          }
+          shuffle(pool);
+          quizItems = pool.slice(0, Math.min(10, pool.length));
+          quizMode = "cold-check";
+          qPos = 0; qScore = 0; qResults = [];
+          show("view-quiz");
+          renderQuestion();
+        }, function () {
+          btn.disabled = false;
+          sub.textContent = oldSub;
+        });
+      }
+
       function renderQuestion() {
         qAnswered = false;
-        var q = currentQuestions[qPos];
-        document.getElementById("quiz-topic").textContent = q.topic;
-        document.getElementById("quiz-prompt").textContent = q.prompt;
-        document.getElementById("quiz-count").textContent = (qPos + 1) + " of " + currentQuestions.length;
-        document.getElementById("quiz-progress").style.width = (qPos / currentQuestions.length * 100) + "%";
+        qSelectedDisplay = -1;
+        var item = quizItems[qPos];
+        var topicEl = document.getElementById("quiz-topic");
+        if (quizMode === "cold-check") {
+          /* Unit/subject stay hidden until the results screen. */
+          topicEl.textContent = "Cold check";
+          topicEl.style.display = "";
+        } else {
+          topicEl.textContent = item.topic;
+          topicEl.style.display = "";
+        }
+        document.getElementById("quiz-prompt").textContent = item.prompt;
+        document.getElementById("quiz-count").textContent = (qPos + 1) + " of " + quizItems.length;
+        document.getElementById("quiz-progress").style.width = (qPos / quizItems.length * 100) + "%";
+        qDisplayOrder = buildDisplayOrder(item.choices.length);
+        qDisplayCorrect = qDisplayOrder.indexOf(item.correct);
         var box = document.getElementById("quiz-choices");
         box.innerHTML = "";
-        q.choices.forEach(function (choice, i) {
+        qDisplayOrder.forEach(function (origIdx, displayIdx) {
           var b = document.createElement("button");
           b.className = "choice";
-          b.textContent = choice;
-          b.addEventListener("click", function () { answer(i); });
+          b.textContent = item.choices[origIdx];
+          b.setAttribute("data-display", String(displayIdx));
+          b.addEventListener("click", function () { selectChoice(displayIdx); });
           box.appendChild(b);
         });
+        document.getElementById("quiz-confidence").classList.remove("show");
+        document.getElementById("btn-conf-sure").disabled = false;
+        document.getElementById("btn-conf-guess").disabled = false;
         document.getElementById("quiz-explain").classList.remove("show");
+        var note = document.getElementById("quiz-confidence-note");
+        note.style.display = "none"; note.textContent = "";
         document.getElementById("btn-next").classList.remove("show");
       }
 
-      function answer(picked) {
+      function selectChoice(displayIdx) {
         if (qAnswered) return;
+        qSelectedDisplay = displayIdx;
+        var buttons = document.querySelectorAll("#quiz-choices .choice");
+        buttons.forEach(function (b, i) {
+          b.classList.toggle("selected", i === displayIdx);
+        });
+        document.getElementById("quiz-confidence").classList.add("show");
+      }
+
+      function answer(confidence) {
+        if (qAnswered) return;
+        if (qSelectedDisplay < 0) return; /* must pick a choice first */
+        if (confidence !== "sure" && confidence !== "guessing") return;
         qAnswered = true;
-        var q = currentQuestions[qPos];
-        var right = picked === q.correct;
+        var item = quizItems[qPos];
+        var pickedOriginal = qDisplayOrder[qSelectedDisplay];
+        var right = pickedOriginal === item.correct;
+        /* Verification invariant: right === (qSelectedDisplay === qDisplayCorrect) */
         if (right) qScore++;
-        syncAnswer(currentUnitId, qPos, picked, right, q.topic);
+        syncAnswer(item.unitId, item.qIdx, pickedOriginal, right, item.topic, confidence);
+        recordLocalAnswer(item.unitId, item.topic, right, confidence);
+        qResults.push({ unitId: item.unitId, unitTitle: item.unitTitle, subject: item.subject, topic: item.topic, prompt: item.prompt, correct: right, confidence: confidence });
+        document.getElementById("btn-conf-sure").disabled = true;
+        document.getElementById("btn-conf-guess").disabled = true;
         var buttons = document.querySelectorAll("#quiz-choices .choice");
         buttons.forEach(function (b, i) {
           b.disabled = true;
-          if (i === q.correct) b.classList.add("correct");
-          else if (i === picked) b.classList.add("wrong");
+          b.classList.remove("selected");
+          if (i === qDisplayCorrect) b.classList.add("correct");
+          else if (i === qSelectedDisplay) b.classList.add("wrong");
         });
         var verdict = document.getElementById("quiz-verdict");
         verdict.textContent = right ? "✓ Correct!" : "✗ Not quite — here's how it works:";
         verdict.className = "verdict " + (right ? "right" : "wrong");
-        document.getElementById("quiz-explain-text").textContent = q.explain;
+        document.getElementById("quiz-explain-text").textContent = item.explain || "";
+        var note = document.getElementById("quiz-confidence-note");
+        if (!right && confidence === "sure") {
+          note.textContent = "You were sure about this one — this is one to re-read.";
+          note.className = "confidence-note";
+          note.style.display = "";
+        } else if (right && confidence === "guessing") {
+          note.textContent = "Right — but you guessed it, so it stays in practice.";
+          note.className = "confidence-note guessed-right";
+          note.style.display = "";
+        } else {
+          note.style.display = "none"; note.textContent = "";
+        }
         document.getElementById("quiz-explain").classList.add("show");
         var next = document.getElementById("btn-next");
-        next.textContent = qPos === currentQuestions.length - 1 ? "See my score →" : "Next question →";
+        next.textContent = qPos === quizItems.length - 1 ? "See my score →" : "Next question →";
         next.classList.add("show");
+      }
+
+      function renderResultsList() {
+        var wrap = document.getElementById("quiz-results-list");
+        var box = document.getElementById("quiz-results-items");
+        box.innerHTML = "";
+        if (!qResults.length) { wrap.classList.remove("show"); return; }
+        qResults.forEach(function (r, i) {
+          var div = document.createElement("div");
+          div.className = "result-item";
+          var meta = document.createElement("div");
+          meta.className = "r-meta";
+          var metaParts = [];
+          if (r.subject) metaParts.push(r.subject);
+          if (r.unitTitle) metaParts.push(r.unitTitle);
+          if (r.topic) metaParts.push(r.topic);
+          meta.textContent = "Q" + (i + 1) + " · " + metaParts.join(" · ");
+          var pr = document.createElement("div");
+          pr.className = "r-prompt";
+          pr.textContent = r.prompt;
+          var vd = document.createElement("div");
+          vd.className = "r-verdict " + (r.correct ? "right" : "wrong");
+          vd.textContent = (r.correct ? "✓ Correct" : "✗ Missed") + (r.confidence === "sure" ? " · you were sure" : r.confidence === "guessing" ? " · you were guessing" : "");
+          div.appendChild(meta); div.appendChild(pr); div.appendChild(vd);
+          box.appendChild(div);
+        });
+        wrap.classList.add("show");
       }
 
       function nextQuestion() {
         qPos++;
-        if (qPos >= currentQuestions.length) {
-          var prev = quizRecordFor(currentUnitId);
-          var best = prev && typeof prev.best === "number" ? Math.max(prev.best, qScore) : qScore;
-          saveJSON(quizKey(currentUnitId), { last: qScore, best: best, when: Date.now() });
-          syncAttempt(currentUnitId, qScore, currentQuestions.length);
-          document.getElementById("quiz-final-score").textContent = qScore + " / " + currentQuestions.length;
-          var msg;
-          if (qScore === currentQuestions.length) msg = "Perfect score — you've got this unit down. Keep the flashcards cycling so it stays that way.";
-          else if (qScore >= Math.ceil(currentQuestions.length * 0.75)) msg = "Strong work. Re-read the explanations for the ones you missed, then try again to lock them in.";
-          else if (qScore >= Math.ceil(currentQuestions.length * 0.5)) msg = "Good start. Flip through the flashcards for the topics you missed, then take the quiz again.";
-          else msg = "This is exactly what practice is for. Go through the flashcards first, take your time, then try the quiz again.";
-          document.getElementById("quiz-final-text").textContent = msg + " Best score so far: " + best + " / " + currentQuestions.length + ".";
-          refreshUnitView();
+        if (qPos >= quizItems.length) {
+          var total = quizItems.length;
+          document.getElementById("quiz-final-score").textContent = qScore + " / " + total;
+          var againBtn = document.getElementById("btn-quiz-again");
+          var backUnitBtn = document.getElementById("btn-quiz-done-back");
+          var backHomeBtn = document.getElementById("btn-quiz-done-home");
+          if (quizMode === "cold-check") {
+            syncAttempt("cold-check", qScore, total, "cold-check");
+            var cmsg;
+            if (qScore === total) cmsg = "Perfect cold check — you remembered this cold, across subjects. That's real mastery.";
+            else if (qScore >= Math.ceil(total * 0.75)) cmsg = "Strong cold check. Look at the breakdown below — the misses show exactly what to re-read.";
+            else if (qScore >= Math.ceil(total * 0.5)) cmsg = "Good effort. The breakdown below shows where each question came from — start your next session there.";
+            else cmsg = "Cold checks are meant to be hard — they show what's actually stuck. Use the breakdown below to pick your next unit.";
+            document.getElementById("quiz-final-text").textContent = cmsg;
+            againBtn.textContent = "New cold check";
+            backUnitBtn.style.display = "none";
+            backHomeBtn.style.display = "";
+          } else {
+            var prev = quizRecordFor(currentUnitId);
+            var best = prev && typeof prev.best === "number" ? Math.max(prev.best, qScore) : qScore;
+            saveJSON(quizKey(currentUnitId), { last: qScore, best: best, when: Date.now() });
+            syncAttempt(currentUnitId, qScore, total, "unit");
+            var msg;
+            if (qScore === total) msg = "Perfect score — you've got this unit down. Keep the flashcards cycling so it stays that way.";
+            else if (qScore >= Math.ceil(total * 0.75)) msg = "Strong work. Re-read the explanations for the ones you missed, then try again to lock them in.";
+            else if (qScore >= Math.ceil(total * 0.5)) msg = "Good start. Flip through the flashcards for the topics you missed, then take the quiz again.";
+            else msg = "This is exactly what practice is for. Go through the flashcards first, take your time, then try the quiz again.";
+            document.getElementById("quiz-final-text").textContent = msg + " Best score so far: " + best + " / " + total + ".";
+            againBtn.textContent = "Take it again";
+            backUnitBtn.style.display = "";
+            backHomeBtn.style.display = "none";
+            refreshUnitView();
+          }
+          renderResultsList();
+          updateMasteryBadges();
           show("view-quiz-done");
         } else {
           renderQuestion();
@@ -1096,9 +1366,14 @@
         startCards(currentCards.map(function (_, i) { return i; }));
       });
       document.getElementById("btn-quiz").addEventListener("click", startQuiz);
-      document.getElementById("btn-quiz-again").addEventListener("click", startQuiz);
+      document.getElementById("btn-quiz-again").addEventListener("click", function () {
+        if (quizMode === "cold-check") startColdCheck(); else startQuiz();
+      });
       document.getElementById("btn-next").addEventListener("click", nextQuestion);
       document.getElementById("btn-review-all").addEventListener("click", startReviewAll);
+      document.getElementById("btn-cold-check").addEventListener("click", startColdCheck);
+      document.getElementById("btn-conf-sure").addEventListener("click", function () { answer("sure"); });
+      document.getElementById("btn-conf-guess").addEventListener("click", function () { answer("guessing"); });
       document.getElementById("btn-back-home").addEventListener("click", function () {
         updateHomeBadges();
         updateReviewAllSub();
@@ -1107,12 +1382,23 @@
       document.getElementById("btn-cards-back").addEventListener("click", goBackFromStudy);
       document.getElementById("btn-done-back").addEventListener("click", goBackFromStudy);
       document.getElementById("btn-quiz-back").addEventListener("click", function () {
-        refreshUnitView();
-        show("view-unit");
+        if (quizMode === "cold-check") {
+          updateHomeBadges();
+          updateReviewAllSub();
+          show("view-home");
+        } else {
+          refreshUnitView();
+          show("view-unit");
+        }
       });
       document.getElementById("btn-quiz-done-back").addEventListener("click", function () {
         refreshUnitView();
         show("view-unit");
+      });
+      document.getElementById("btn-quiz-done-home").addEventListener("click", function () {
+        updateHomeBadges();
+        updateReviewAllSub();
+        show("view-home");
       });
 
       if (typeof totalsByUnit[CHEM_ID] !== "number") totalsByUnit[CHEM_ID] = EMBEDDED_CARDS.length;
