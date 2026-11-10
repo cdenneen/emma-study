@@ -3,7 +3,7 @@
    API traffic (Supabase) is never intercepted for caching — those
    requests always go straight to the network, untouched. */
 
-var CACHE_NAME = "emma-study-shell-v4";
+var CACHE_NAME = "emma-study-shell-v5";
 
 /* This worker lives at the PAGE ROOT (published next to index.html):
    a service worker's scope can never extend above its own directory,

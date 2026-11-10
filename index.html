@@ -403,7 +403,7 @@
           <div class="score-line">Loading your subjects…</div>
         </div>
 
-        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v4
+        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v5
           <span class="stamp-hint">Tap Refresh (top right) to check for a new version — press &amp; hold it only if the app seems stuck.</span>
         </p>
       </section>
@@ -2357,7 +2357,7 @@
          The build stamp printed at the bottom of the home view; bump
          it (with the worker's CACHE_NAME) whenever the shell changes
          so "am I on the latest?" is answerable at a glance. */
-      var BUILD_STAMP = "Nov 9, 2026 · shell v4";
+      var BUILD_STAMP = "Nov 9, 2026 · shell v5";
 
       var appToastTimer = null;
       function showAppToast(text, holdMs) {
@@ -2616,10 +2616,10 @@
          off, lit accent fill = on, dim with a slash = blocked.
          Reminders are deliberately one-way in the app: once they are
          on there is NO in-app way to turn them off (no unsubscribe
-         path exists anywhere in this code). A parent who needs them
-         off does it in iPhone Settings → Notifications → Study,
-         which flips permission to "denied" and the chip then shows
-         the blocked state. */
+         path exists anywhere in this code), and the app copy never
+         explains how — a tap on the lit bulb just confirms they are
+         on. If notification permission is ever revoked at the OS
+         level, the chip shows the blocked state. */
       var remindersState = "off";
       function setRemindersVisual(state) {
         var btn = document.getElementById("btn-reminders");
@@ -2630,8 +2630,8 @@
         if (state === "on") btn.classList.add("is-on");
         else if (state === "blocked") btn.classList.add("is-blocked");
         var label = "Study reminders: off. Tap to turn on study reminders on this phone.";
-        if (state === "on") label = "Study reminders: on for this phone. They stay on in the app; a grown-up can change them in iPhone Settings.";
-        else if (state === "blocked") label = "Study reminders: blocked. Tap for how to allow them.";
+        if (state === "on") label = "Study reminders: on for this phone.";
+        else if (state === "blocked") label = "Study reminders: blocked on this phone.";
         btn.setAttribute("aria-label", label);
       }
       var remindersNoteTimer = null;
@@ -2688,10 +2688,9 @@
 
       function onRemindersTap() {
         /* Already on: reminders are one-way by design, so a tap can
-           never turn them off — it only explains where a grown-up
-           manages them (iPhone Settings, outside the app). */
+           never turn them off — it just confirms they're on. */
         if (remindersState === "on") {
-          remindersNote("Reminders are on for this phone and stay on here. A grown-up can turn them off in Settings → Notifications → Study.");
+          remindersNote("Reminders are on for this phone.");
           return;
         }
         /* On iPhone, web push only exists inside the installed app —
@@ -2702,7 +2701,7 @@
           return;
         }
         if (Notification.permission === "denied") {
-          remindersNote("Notifications are blocked for Study. You can allow them in Settings \u2192 Notifications \u2192 Study.");
+          remindersNote("Notifications are blocked for Study on this phone.");
           return;
         }
         remindersNote("");
@@ -2710,7 +2709,7 @@
           if (permission !== "granted") {
             refreshRemindersState();
             if (permission === "denied") {
-              remindersNote("Notifications are blocked for Study. You can allow them in Settings \u2192 Notifications \u2192 Study.");
+              remindersNote("Notifications are blocked for Study on this phone.");
             }
             return null;
           }
