@@ -3,7 +3,7 @@
    API traffic (Supabase) is never intercepted for caching — those
    requests always go straight to the network, untouched. */
 
-var CACHE_NAME = "emma-study-shell-v5";
+var CACHE_NAME = "emma-study-shell-v6";
 
 /* This worker lives at the PAGE ROOT (published next to index.html):
    a service worker's scope can never extend above its own directory,
@@ -44,9 +44,15 @@ self.addEventListener("install", function (event) {
 });
 
 /* The page's Refresh / "Update now" control posts this when the
-   person chooses to take a waiting update. */
+   person chooses to take a waiting update. It is posted to THIS
+   worker while it is the registration's waiting worker — only the
+   waiting worker can act on it; a message delivered to the active /
+   controlling worker is a no-op and the update never lands. Accept
+   both the object form the page sends and a bare string, so no page
+   build can talk past this worker. */
 self.addEventListener("message", function (event) {
-  if (event.data && event.data.type === "SKIP_WAITING") {
+  var data = event.data;
+  if (data === "SKIP_WAITING" || (data && data.type === "SKIP_WAITING")) {
     self.skipWaiting();
   }
 });
