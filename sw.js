@@ -1,9 +1,27 @@
 /* Emma Study service worker.
-   App-shell caching (cache-first, versioned) + web push notifications.
+   App-shell caching (versioned) + web push notifications.
    API traffic (Supabase) is never intercepted for caching — those
-   requests always go straight to the network, untouched. */
+   requests always go straight to the network, untouched.
 
-var CACHE_NAME = "emma-study-shell-v7";
+   Update strategy (shell v9 — rewritten after the v5→v7 hops proved
+   the old one unreliable on real phones):
+   1. This worker activates ITSELF at install (skipWaiting below).
+      It never sits in the "waiting" state hoping the page's
+      SKIP_WAITING message arrives — that message was the single
+      point of failure in the old flow: when it didn't land, the
+      update silently never took over, the banner vanished, and the
+      app reported "latest version" while running the old shell.
+   2. Shell files are fetched with cache:"no-cache" at install, so
+      a stale HTTP-cached copy of index.html can never be baked
+      into the new shell's cache (the other half of the old bug:
+      a "new" worker serving the previous build's page).
+   3. Page navigations are NETWORK-FIRST (see fetch handler), so
+      once a new worker is in control, any reload lands the fresh
+      shell even if a cache somewhere still holds the old one.
+      Static assets stay cache-first; offline study still works
+      because a failed navigation fetch falls back to the cache. */
+
+var CACHE_NAME = "emma-study-shell-v9";
 
 /* This worker lives at the PAGE ROOT (published next to index.html):
    a service worker's scope can never extend above its own directory,
@@ -30,26 +48,41 @@ function appURL() {
 }
 
 self.addEventListener("install", function (event) {
-  /* No skipWaiting() here on purpose: when a previous worker is
-     still controlling the app, this worker WAITS so the page's
-     Refresh control can offer the update and activate it on tap
-     (via the SKIP_WAITING message below) instead of swapping the
-     shell out from under an in-progress study session. A first
-     install has no controller to wait for and activates at once. */
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(SHELL_FILES.map(shellURL));
+      /* Fetch each shell file explicitly with no-cache so the new
+         cache can only ever hold bytes at least as fresh as a
+         revalidation with the server — never a stale HTTP cache
+         entry. cache.addAll() uses default fetching and was able
+         to bake the previous build's index.html into the "new"
+         shell. */
+      return Promise.all(SHELL_FILES.map(function (path) {
+        var url = shellURL(path);
+        return fetch(url, { cache: "no-cache" }).then(function (response) {
+          if (!response || !response.ok) {
+            throw new Error("shell fetch failed: " + path);
+          }
+          return cache.put(url, response);
+        });
+      }));
+    }).then(function () {
+      /* Activate immediately, without waiting for a page message.
+         The page decides when to RELOAD onto the new shell (its
+         Update banner / Refresh chip), so taking control here does
+         not swap anything out from under a study session in
+         progress — the on-screen page keeps running until reload,
+         and its data comes from the network/local store, never
+         from this cache. */
+      return self.skipWaiting();
     })
   );
 });
 
-/* The page's Refresh / "Update now" control posts this when the
-   person chooses to take a waiting update. It is posted to THIS
-   worker while it is the registration's waiting worker — only the
-   waiting worker can act on it; a message delivered to the active /
-   controlling worker is a no-op and the update never lands. Accept
-   both the object form the page sends and a bare string, so no page
-   build can talk past this worker. */
+/* Kept for backward compatibility: older pages (shell v8 and
+   earlier) post this when the person taps Update. In v9 it is a
+   harmless no-op path — this worker already activated itself —
+   but accept both message forms so no page build can talk past
+   this worker. */
 self.addEventListener("message", function (event) {
   var data = event.data;
   if (data === "SKIP_WAITING" || (data && data.type === "SKIP_WAITING")) {
@@ -81,6 +114,33 @@ self.addEventListener("fetch", function (event) {
      are left completely alone: network only, never cached. */
   if (url.origin !== self.location.origin) return;
 
+  /* Navigations (the page itself): NETWORK-FIRST. This is what
+     makes an update land on reload regardless of what any cache
+     holds — the fresh index.html comes from the network (with
+     revalidation), gets stored for offline use, and the cached
+     copy is only a fallback when the network is unreachable. */
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request, { cache: "no-cache" }).then(function (response) {
+        if (response && response.ok) {
+          var copy = response.clone();
+          caches.open(CACHE_NAME).then(function (cache) {
+            cache.put(request, copy);
+          });
+        }
+        return response;
+      }).catch(function () {
+        return caches.match(request, { ignoreSearch: true }).then(function (hit) {
+          if (hit) return hit;
+          return caches.match(shellURL("./index.html"), { ignoreSearch: true });
+        });
+      })
+    );
+    return;
+  }
+
+  /* Everything else same-origin (icons, manifest): cache-first,
+     refreshed into the cache on a miss. */
   event.respondWith(
     caches.match(request, { ignoreSearch: true }).then(function (hit) {
       if (hit) return hit;

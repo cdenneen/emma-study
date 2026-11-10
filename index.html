@@ -403,7 +403,7 @@
           <div class="score-line">Loading your subjects…</div>
         </div>
 
-        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v7
+        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v9
           <span class="stamp-hint">Tap Refresh (top right) to check for a new version — press &amp; hold it only if the app seems stuck.</span>
         </p>
       </section>
@@ -2357,7 +2357,7 @@
          The build stamp printed at the bottom of the home view; bump
          it (with the worker's CACHE_NAME) whenever the shell changes
          so "am I on the latest?" is answerable at a glance. */
-      var BUILD_STAMP = "Nov 9, 2026 · shell v7";
+      var BUILD_STAMP = "Nov 9, 2026 · shell v9";
 
       var appToastTimer = null;
       function showAppToast(text, holdMs) {
@@ -2377,6 +2377,7 @@
         chip.disabled = !!on;
       }
       function setUpdateAvailable(on) {
+        updateReady = !!on;
         var chip = document.getElementById("btn-refresh");
         if (chip) chip.classList.toggle("has-update", !!on);
         var banner = document.getElementById("update-banner");
@@ -2388,102 +2389,144 @@
         }
       }
 
-      /* Reload exactly once, and only when an update we asked the
-         waiting worker to take has actually taken control. A plain
-         reload on its own is never the mechanism here: under the
-         cache-first worker it would just re-serve the cached shell. */
-      var reloadForUpdate = false;
-      var updateControllerBefore = null;
-      var updateWatchdogTimer = null;
+      /* ---------- Update flow (shell v9) ----------
+         How updates work now, end to end:
+         - The v9+ worker activates ITSELF at install (skipWaiting
+           in the worker) and serves page navigations network-first.
+           Activation no longer depends on this page posting a
+           SKIP_WAITING message to a waiting worker — that message
+           was the single point of failure in the v5→v7 hops: the
+           update was announced, the tap was made, the page reloaded
+           onto the old cached shell, and the app then reported
+           "latest version" because no worker was left waiting.
+         - This page's job is only to notice that a different worker
+           has taken control (controllerchange, tracked below) — or
+           that one is still waiting (a pre-v9 worker, which does
+           need the message) — and, when the person taps Update or
+           Refresh, reload once. A reload is now sufficient by
+           construction: the controlling worker fetches the page
+           network-first, so the fresh shell is what loads.
+         - If a tap asks for an update and neither a new controller
+           nor a waiting worker resolves within a few seconds, the
+           flow escalates to the same deep clear the Refresh
+           long-press uses, so an Update tap always lands. */
+      var pageControllerAtLoad = null;
+      try { pageControllerAtLoad = navigator.serviceWorker ? (navigator.serviceWorker.controller || null) : null; } catch (e) {}
+      var controllerDidChange = false; /* a different worker controls this page than at load */
+      var updateReady = false;          /* an update has been detected and not yet taken */
+      var reloadArmed = false;          /* the person tapped Update/Refresh: reload on takeover */
+      var updateReloaded = false;       /* reload-once guard for this page load */
+      var takeoverWatchTimer = null;
+
+      function doUpdateReload() {
+        if (updateReloaded) return;
+        updateReloaded = true;
+        reloadArmed = false;
+        if (takeoverWatchTimer) { clearInterval(takeoverWatchTimer); takeoverWatchTimer = null; }
+        window.location.reload();
+      }
+
       if ("serviceWorker" in navigator) {
         try {
           navigator.serviceWorker.addEventListener("controllerchange", function () {
-            if (!reloadForUpdate) return;
-            reloadForUpdate = false;
-            if (updateWatchdogTimer) { clearTimeout(updateWatchdogTimer); updateWatchdogTimer = null; }
-            window.location.reload();
+            var ctrl = null;
+            try { ctrl = navigator.serviceWorker.controller || null; } catch (e) {}
+            /* First install claiming the page is not an update. */
+            if (!pageControllerAtLoad || !ctrl || ctrl === pageControllerAtLoad) return;
+            controllerDidChange = true;
+            updateReady = true;
+            if (reloadArmed) { doUpdateReload(); return; }
+            /* Not armed: never reload out from under a study
+               session. The new shell is already the one a reload
+               would serve — surface the banner and let the tap
+               do the reload. */
+            setUpdateAvailable(true);
           });
         } catch (e) {}
       }
 
-      /* Take a waiting update. The SKIP_WAITING message goes to the
-         WAITING worker specifically (reg.waiting) — never to the
-         controller or the active worker, which cannot act on it;
-         delivering it to the wrong worker is what left a phone
-         sitting on the old version with the banner still showing.
-         Once posted, the waiting worker activates, purges the old
-         shell cache, and claims the page; controllerchange (above)
-         then reloads exactly once onto the new shell. */
+      /* Take an announced update, whatever stage it is in:
+         1. A new worker already controls the page (the normal v9+
+            path — it activated itself): a plain reload lands the
+            new shell, because navigations are network-first.
+         2. A worker is still waiting (a pre-v9 worker needs the
+            SKIP_WAITING message): nudge it in both message forms
+            and watch for the takeover, reloading when it lands.
+         3. An update is still installing: arm the reload and let
+            controllerchange / the takeover watch finish the job.
+         Returns false only when there is nothing to take. */
       function applyWaitingUpdate(reg) {
+        if (controllerDidChange) { doUpdateReload(); return true; }
         var waiting = reg && reg.waiting;
-        if (!waiting) return false;
-        reloadForUpdate = true;
-        try { updateControllerBefore = navigator.serviceWorker.controller || null; } catch (e) { updateControllerBefore = null; }
+        var installing = reg && reg.installing;
+        if (!waiting && !installing) return false;
+        reloadArmed = true;
         showAppToast("Updating to the new version…", 8000);
-        try { waiting.postMessage({ type: "SKIP_WAITING" }); } catch (e) {}
-        /* Watchdog: if controllerchange has not fired within ~5s,
-           do NOT just reload — the old worker would re-serve the
-           old cached shell and nothing would change. Poll the
-           registration instead, and if the new worker still has not
-           taken control, escalate to the same deep clear the
-           Refresh long-press uses, so an Update tap always lands
-           the update. */
-        if (updateWatchdogTimer) clearTimeout(updateWatchdogTimer);
-        updateWatchdogTimer = setTimeout(function () {
-          updateWatchdogTimer = null;
-          pollForTakeover(reg, 0);
-        }, 5000);
+        if (waiting) {
+          try { waiting.postMessage({ type: "SKIP_WAITING" }); } catch (e) {}
+          try { waiting.postMessage("SKIP_WAITING"); } catch (e) {}
+        }
+        startTakeoverWatch(reg);
         return true;
       }
 
-      /* Watchdog helper for applyWaitingUpdate: has the new worker
-         actually taken over? It has when the waiting slot has
-         cleared and the active worker is no longer the one that
-         controlled this page before the update — then a plain
-         reload lands the new shell even though controllerchange
-         never arrived. If the old worker is still in charge after
-         a couple of polls (with the message re-sent), escalate to
-         the deep clear: delete caches + unregister + reload. */
-      function pollForTakeover(reg, tries) {
-        if (!reloadForUpdate) return;
-        Promise.resolve()
-          .then(function () { return navigator.serviceWorker.getRegistration(); })
-          .catch(function () { return null; })
-          .then(function (fresh) {
-            if (!reloadForUpdate) return;
-            var r = fresh || reg;
-            var newActive = !!(r && r.active && r.active !== updateControllerBefore);
-            if (!r || !r.waiting || newActive) {
-              reloadForUpdate = false;
-              window.location.reload();
-              return;
-            }
-            if (tries < 2) {
-              try { r.waiting.postMessage({ type: "SKIP_WAITING" }); } catch (e) {}
-              setTimeout(function () { pollForTakeover(r, tries + 1); }, 1500);
-              return;
-            }
-            reloadForUpdate = false;
-            showAppToast("That update needs a fresh start — clearing the cached app…", 8000);
-            deepClearAndReload();
-          })
-          .catch(function () {
-            if (!reloadForUpdate) return;
-            reloadForUpdate = false;
-            deepClearAndReload();
-          });
+      /* Poll the registration after an Update/Refresh tap that is
+         waiting on a worker: reload the moment a new controller is
+         in charge; if the old worker is STILL in charge when the
+         window closes (a pre-v9 waiting worker that ignored the
+         message), escalate to the deep clear so the tap lands the
+         update instead of stranding the app on the old shell. */
+      function startTakeoverWatch(reg) {
+        if (takeoverWatchTimer) { clearInterval(takeoverWatchTimer); takeoverWatchTimer = null; }
+        var startedAt = Date.now();
+        takeoverWatchTimer = setInterval(function () {
+          if (updateReloaded) {
+            clearInterval(takeoverWatchTimer); takeoverWatchTimer = null;
+            return;
+          }
+          if (controllerDidChange) { doUpdateReload(); return; }
+          Promise.resolve()
+            .then(function () { return navigator.serviceWorker.getRegistration(); })
+            .catch(function () { return null; })
+            .then(function (fresh) {
+              if (updateReloaded) return;
+              var r = fresh || reg;
+              if (r && r.active && pageControllerAtLoad && r.active !== pageControllerAtLoad) {
+                controllerDidChange = true;
+                doUpdateReload();
+                return;
+              }
+              var stillWaiting = !!(r && (r.waiting || r.installing));
+              if (!stillWaiting && Date.now() - startedAt > 1500) {
+                /* Nothing waiting or installing and no new
+                   controller: the worker that was updating is
+                   gone (redundant) — reload once; the network-first
+                   navigation decides what is actually current. */
+                doUpdateReload();
+                return;
+              }
+              if (Date.now() - startedAt > 8000) {
+                clearInterval(takeoverWatchTimer); takeoverWatchTimer = null;
+                reloadArmed = false;
+                showAppToast("That update needs a fresh start — clearing the cached app…", 8000);
+                deepClearAndReload();
+              }
+            });
+        }, 600);
       }
 
-      /* Resolve with the registration's waiting worker. Watches for
-         one to appear — an updatefound during a check, an install
-         already in flight — and polls as well as listening, so a
-         worker that slips between states between checks is never
-         missed (a state-only listener could resolve "nothing new"
-         while a worker sat waiting: the false "latest version").
-         Resolves null only when the window closes with no waiting
-         worker and nothing still installing. */
-      function waitForWaitingWorker(reg, timeoutMs) {
-        if (reg.waiting) return Promise.resolve(reg.waiting);
+      /* Resolve true when a check surfaces anything takeable — a
+         waiting worker, an update still installing, or a new
+         controller already in charge — and false only when the
+         window closes with genuinely nothing new. Polls as well as
+         listening, so a worker that slips between states between
+         checks is never missed (resolving "nothing new" while an
+         update sat there is the false "latest version" defect). */
+      function waitForUpdateSettle(reg, timeoutMs) {
+        function anythingTakeable() {
+          return !!(controllerDidChange || (reg && (reg.waiting || reg.installing)));
+        }
+        if (anythingTakeable()) return Promise.resolve(true);
         return new Promise(function (resolve) {
           var done = false;
           var startedAt = Date.now();
@@ -2494,13 +2537,14 @@
             done = true;
             if (poll) { clearInterval(poll); poll = null; }
             try { reg.removeEventListener("updatefound", onFound); } catch (e) {}
-            resolve(reg.waiting || null);
+            resolve(anythingTakeable());
           }
           function track(worker) {
             if (!worker) return;
             try {
               worker.addEventListener("statechange", function () {
-                if (worker.state === "installed" || worker.state === "activated" || worker.state === "redundant") finish();
+                if (worker.state === "installed" || worker.state === "activated") finish();
+                else if (worker.state === "redundant") finish();
               });
             } catch (e) {}
             if (worker.state === "installed" || worker.state === "activated" || worker.state === "redundant") finish();
@@ -2509,10 +2553,11 @@
           try { reg.addEventListener("updatefound", onFound); } catch (e) {}
           track(reg.installing);
           poll = setInterval(function () {
-            if (reg.waiting) { finish(); return; }
+            if (anythingTakeable()) { finish(); return; }
             if (Date.now() >= deadline) { finish(); return; }
-            /* Nothing installing and nothing waiting shortly after
-               the check ran: the check found nothing new. */
+            /* Nothing installing, nothing waiting, no new
+               controller shortly after the check ran: the check
+               found nothing new. */
             if (!reg.installing && Date.now() >= startedAt + 1200) finish();
           }, 200);
         });
@@ -2520,25 +2565,37 @@
 
       function watchForUpdates(reg) {
         if (!reg) return;
-        if (reg.waiting && navigator.serviceWorker.controller) setUpdateAvailable(true);
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          updateReady = true;
+          setUpdateAvailable(true);
+        }
         reg.addEventListener("updatefound", function () {
           var installing = reg.installing;
           if (!installing) return;
           installing.addEventListener("statechange", function () {
-            /* "installed" with an existing controller = a new
-               version is waiting, not a first install. */
-            if (installing.state === "installed" && navigator.serviceWorker.controller) {
+            /* With an existing controller, "installed" is a new
+               version ready to take (a first install has no
+               controller). v9+ workers keep going to "activated"
+               on their own — that is also "ready": the new shell
+               is what a reload will serve, so announce it the
+               same way and let the tap reload. */
+            if ((installing.state === "installed" || installing.state === "activated") &&
+                navigator.serviceWorker.controller) {
+              updateReady = true;
               setUpdateAvailable(true);
             }
           });
         });
       }
 
-      /* Routine path (normal tap): ask the browser to check for a
-         new worker. If one is already waiting — or finishes
-         installing as a result of the check — hand control to it
-         and reload once. If there is nothing new, say so against
-         the build stamp instead of reloading the cached shell. */
+      /* Routine path (normal tap): if an update is already known
+         (banner showing, or a new worker already in control), TAKE
+         it — never re-check over the top of it. Otherwise ask the
+         browser to check for a new worker; if the check surfaces
+         one in any form — waiting, still installing, or already
+         activated and in control — take it and reload once. Only
+         when the check closes with none of those present is
+         "latest version" said, against the build stamp. */
       function onRefreshTap() {
         if (!("serviceWorker" in navigator)) {
           showAppToast("You're on the latest version · Build " + BUILD_STAMP);
@@ -2546,8 +2603,6 @@
         }
         setRefreshChecking(true);
         showAppToast("Checking for a new version…", 8000);
-        var controllerAtTap = null;
-        try { controllerAtTap = navigator.serviceWorker.controller || null; } catch (e) {}
         Promise.resolve()
           .then(function () { return getSwRegistration(); })
           .catch(function () { return null; })
@@ -2558,11 +2613,11 @@
               return null;
             }
             watchForUpdates(reg);
-            /* A worker already waiting at tap time IS an update:
-               run the activation flow — never the "latest version"
-               toast. (That false toast, shown while a worker sat
-               waiting, is the defect this ordering fixes.) */
-            if (reg.waiting) {
+            /* Anything takeable already — a waiting or installing
+               worker, a known update, a new controller — IS the
+               update: run the take-it flow, never the "latest
+               version" toast. */
+            if (reg.waiting || reg.installing || updateReady || controllerDidChange) {
               setRefreshChecking(false);
               setUpdateAvailable(true);
               applyWaitingUpdate(reg);
@@ -2571,24 +2626,17 @@
             var updated = null;
             try { updated = reg.update(); } catch (e) {}
             return Promise.resolve(updated).catch(function () {}).then(function () {
-              /* The check may have surfaced a waiting worker, or one
-                 still installing: wait for it to settle before
-                 concluding anything. */
-              return waitForWaitingWorker(reg, 6000).then(function (waiting) {
+              /* The check may have surfaced an update in any stage:
+                 wait for it to settle before concluding anything. */
+              return waitForUpdateSettle(reg, 6000).then(function (takeable) {
                 setRefreshChecking(false);
-                if (waiting || reg.waiting) {
+                if (takeable || reg.waiting || reg.installing || controllerDidChange) {
                   setUpdateAvailable(true);
                   applyWaitingUpdate(reg);
-                } else if (controllerAtTap && navigator.serviceWorker.controller &&
-                           navigator.serviceWorker.controller !== controllerAtTap) {
-                  /* The new worker took control during the check
-                     without leaving one waiting (controllerchange
-                     fired, but no reload was armed): reload once so
-                     the new shell is what is on screen. */
-                  window.location.reload();
                 } else {
-                  /* Only here — no waiting worker, and the check
-                     found nothing new — is "latest version" true. */
+                  /* Only here — nothing waiting, nothing installing,
+                     no new controller, and the check found nothing —
+                     is "latest version" true. */
                   setUpdateAvailable(false);
                   showAppToast("You're on the latest version · Build " + BUILD_STAMP);
                 }
@@ -2712,12 +2760,16 @@
 
       /* The corner chip shows state through the bulb: dim outline =
          off, lit accent fill = on, dim with a slash = blocked.
-         Reminders are deliberately one-way in the app: once they are
-         on there is NO in-app way to turn them off (no unsubscribe
-         path exists anywhere in this code), and the app copy never
-         explains how — a tap on the lit bulb just confirms they are
-         on. If notification permission is ever revoked at the OS
-         level, the chip shows the blocked state. */
+         "On" means fully registered: permission granted, a push
+         subscription on this phone, AND that subscription confirmed
+         saved on the server — anything less shows off (or blocked),
+         because a phone that is only locally subscribed receives no
+         reminders. Reminders are deliberately one-way in the app:
+         once they are on there is NO in-app way to turn them off
+         (no unsubscribe path exists anywhere in this code), and the
+         app copy never explains how — a tap on the lit bulb just
+         confirms they are on. If notification permission is ever
+         revoked at the OS level, the chip shows the blocked state. */
       var remindersState = "off";
       function setRemindersVisual(state) {
         var btn = document.getElementById("btn-reminders");
@@ -2744,19 +2796,59 @@
         else { el.textContent = ""; el.classList.remove("show"); }
       }
 
+      /* Save the subscription to the server AND verify the write
+         landed. The write is an upsert; the read-back by endpoint is
+         what distinguishes "stored" from "silently dropped" — a
+         rejected write (for example the subscriptions table refusing
+         the app's key) must never be mistaken for success, which is
+         exactly how a phone could show reminders ON while the server
+         held no subscription for it. One retry covers a transient
+         network failure. Resolves true only when the row is confirmed
+         server-side. */
       function savePushSubscription(sub) {
-        try {
-          sbFetch("/study_push_subscriptions?on_conflict=endpoint", {
-            method: "POST",
-            headers: { "Prefer": "resolution=merge-duplicates" },
-            body: JSON.stringify({
-              study_id: STUDY_ID,
-              endpoint: sub.endpoint,
-              subscription: sub.toJSON(),
-              user_agent: navigator.userAgent || ""
-            })
+        var payload = JSON.stringify({
+          study_id: STUDY_ID,
+          endpoint: sub.endpoint,
+          subscription: sub.toJSON(),
+          user_agent: navigator.userAgent || ""
+        });
+        function attempt(n) {
+          var p = null;
+          try {
+            p = sbFetch("/study_push_subscriptions?on_conflict=endpoint", {
+              method: "POST",
+              headers: { "Prefer": "resolution=merge-duplicates" },
+              body: payload
+            });
+          } catch (e) { p = null; }
+          if (!p || typeof p.then !== "function") {
+            return n < 1 ? attempt(n + 1) : Promise.resolve(false);
+          }
+          return p.then(function (r) {
+            if (!r || !r.ok) return n < 1 ? attempt(n + 1) : false;
+            /* Write accepted — confirm the row is really there.
+               A read-back that fails or finds nothing is NOT a
+               confirmation: treating it as one is how a phone
+               could light the bulb while the server held no
+               subscription for it. Retry once, then report the
+               save as unconfirmed and let the next open retry. */
+            var q = null;
+            try {
+              q = sbGetJSON("/study_push_subscriptions?endpoint=eq." +
+                encodeURIComponent(sub.endpoint) + "&select=endpoint");
+            } catch (e) { q = null; }
+            if (!q || typeof q.then !== "function") return n < 1 ? attempt(n + 1) : false;
+            return q.then(function (rows) {
+              if (rows && rows.length > 0) return true;
+              return n < 1 ? attempt(n + 1) : false;
+            }).catch(function () {
+              return n < 1 ? attempt(n + 1) : false;
+            });
+          }).catch(function () {
+            return n < 1 ? attempt(n + 1) : false;
           });
-        } catch (e) {}
+        }
+        return attempt(0);
       }
 
       function refreshRemindersState() {
@@ -2771,18 +2863,48 @@
         if (Notification.permission === "granted") {
           getSwRegistration().then(function (reg) {
             if (!reg) { setRemindersVisual("off"); return null; }
-            return reg.pushManager.getSubscription();
+            return reg.pushManager.getSubscription().then(function (existing) {
+              if (existing) return existing;
+              /* Permission is granted but this phone holds no
+                 subscription — the state every "enabled in system
+                 settings, never registered" phone sits in. Create
+                 the subscription now instead of just showing off:
+                 permission alone enrolls nobody. */
+              return reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+              });
+            });
           }).then(function (sub) {
-            /* Self-heal: a subscription created before the server
-               accepted upserts may exist on this phone with nothing
-               stored server-side, so silently re-save the existing
-               one on open. No toast, no state change beyond what the
-               bulb already shows; a failed save is ignored. */
-            if (sub) savePushSubscription(sub);
-            setRemindersVisual(sub ? "on" : "off");
+            if (!sub) { setRemindersVisual("off"); return; }
+            /* "On" means registered on the server, not merely
+               subscribed on the device — so verify the save before
+               lighting the bulb. If the save cannot be confirmed,
+               fall back to what the bulb said before and let the
+               next open (or the tap flow) retry; studying is never
+               blocked on this. */
+            savePushSubscription(sub).then(function (saved) {
+              if (saved) setRemindersVisual("on");
+              else if (remindersState !== "on") setRemindersVisual("off");
+            });
           }).catch(function () {});
         }
       }
+
+      /* Re-run the registration check whenever the app comes back
+         to the foreground: an installed app usually resumes from
+         memory instead of reloading, so without this a phone whose
+         permission was granted (or whose save failed) while the app
+         sat in the background would wait for a full relaunch before
+         enrolling. Guarded to run at most once a minute. */
+      var lastRemindersCheck = 0;
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState !== "visible") return;
+        var now = Date.now();
+        if (now - lastRemindersCheck < 60000) return;
+        lastRemindersCheck = now;
+        refreshRemindersState();
+      });
 
       function onRemindersTap() {
         /* Already on: reminders are one-way by design, so a tap can
@@ -2825,10 +2947,21 @@
             });
           });
         }).then(function (sub) {
-          if (!sub) return;
-          savePushSubscription(sub);
-          setRemindersVisual("on");
-          remindersNote("You're all set! Study reminders will pop up on this phone.");
+          if (!sub) return null;
+          /* The success message waits for the verified server save:
+             a subscription that exists only on this phone receives
+             nothing, so "all set" is only true once the row is
+             confirmed stored. */
+          return savePushSubscription(sub).then(function (saved) {
+            if (saved) {
+              setRemindersVisual("on");
+              remindersNote("You're all set! Study reminders will pop up on this phone.");
+            } else {
+              remindersNote("This phone is subscribed, but the reminder list didn't save it just now. It will keep trying when you open Study — and studying works either way.");
+              refreshRemindersState();
+            }
+            return null;
+          });
         }).catch(function () {
           remindersNote("Hmm, reminders didn't turn on this time. You can try again in a bit — studying works either way.");
           refreshRemindersState();
@@ -2874,10 +3007,15 @@
       })();
       document.getElementById("btn-update-now").addEventListener("click", function () {
         if (!("serviceWorker" in navigator)) { onRefreshTap(); return; }
+        /* A new worker may already control the page (v9+ workers
+           activate themselves): then the update is taken with a
+           plain reload, no registration lookup needed. */
+        if (controllerDidChange) { doUpdateReload(); return; }
         Promise.resolve()
           .then(function () { return getSwRegistration(); })
           .then(function (reg) {
             if (reg && applyWaitingUpdate(reg)) return;
+            if (controllerDidChange) { doUpdateReload(); return; }
             onRefreshTap();
           })
           .catch(function () { onRefreshTap(); });
