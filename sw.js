@@ -3,7 +3,7 @@
    API traffic (Supabase) is never intercepted for caching — those
    requests always go straight to the network, untouched. */
 
-var CACHE_NAME = "emma-study-shell-v3";
+var CACHE_NAME = "emma-study-shell-v4";
 
 /* This worker lives at the PAGE ROOT (published next to index.html):
    a service worker's scope can never extend above its own directory,
@@ -30,13 +30,25 @@ function appURL() {
 }
 
 self.addEventListener("install", function (event) {
+  /* No skipWaiting() here on purpose: when a previous worker is
+     still controlling the app, this worker WAITS so the page's
+     Refresh control can offer the update and activate it on tap
+     (via the SKIP_WAITING message below) instead of swapping the
+     shell out from under an in-progress study session. A first
+     install has no controller to wait for and activates at once. */
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
       return cache.addAll(SHELL_FILES.map(shellURL));
-    }).then(function () {
-      return self.skipWaiting();
     })
   );
+});
+
+/* The page's Refresh / "Update now" control posts this when the
+   person chooses to take a waiting update. */
+self.addEventListener("message", function (event) {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", function (event) {
