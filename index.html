@@ -258,6 +258,36 @@
         padding: 5px 12px; border-radius: 999px; margin-bottom: 12px;
       }
       .q-prompt { font-size: 1.2rem; font-weight: 800; line-height: 1.4; margin: 0 0 18px; }
+      .hint-btn {
+        border: 2px solid var(--accent); background: var(--accent-soft); color: var(--accent);
+        font-family: inherit; font-size: 0.95rem; font-weight: 900; cursor: pointer;
+        padding: 10px 18px; border-radius: 999px; margin: -4px 0 14px; min-height: 44px;
+      }
+      .hint-btn:disabled { opacity: 0.55; cursor: default; }
+      .hint-panel {
+        display: none; background: var(--surface); border: 1px solid var(--line);
+        border-left: 5px solid var(--accent); border-radius: 12px;
+        padding: 12px 14px; margin: -2px 0 16px;
+      }
+      .hint-panel.show { display: block; }
+      .hint-panel .hint-label {
+        font-size: 0.78rem; font-weight: 900; letter-spacing: 0.05em;
+        text-transform: uppercase; color: var(--accent); margin-bottom: 4px;
+      }
+      .hint-panel p { margin: 0; font-weight: 700; line-height: 1.45; }
+      .repair-intro {
+        display: none; background: var(--warn-soft); border: 1px solid var(--warn);
+        border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+        font-weight: 800; line-height: 1.45;
+      }
+      .repair-intro.show { display: block; }
+      .review-cards-btn {
+        display: none; width: 100%; border: 2px solid var(--accent); cursor: pointer;
+        background: var(--accent-soft); color: var(--accent); font-family: inherit;
+        font-size: 1rem; font-weight: 900; padding: 13px 16px;
+        border-radius: 14px; margin-top: 14px; min-height: 52px;
+      }
+      .review-cards-btn.show { display: block; }
       .choice {
         display: block; width: 100%; text-align: left; cursor: pointer;
         background: var(--surface); border: 2px solid var(--line); color: var(--ink);
@@ -493,7 +523,7 @@
           <div class="score-line">Loading your subjects…</div>
         </div>
 
-        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v12
+        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v13
           <span class="stamp-hint">Tap Refresh (top right) to check for a new version — press &amp; hold it only if the app seems stuck.</span>
         </p>
       </section>
@@ -564,20 +594,27 @@
           <span class="progress-label" id="quiz-count"></span>
         </div>
         <span class="topic-tag" id="quiz-topic"></span>
+        <div class="repair-intro" id="quiz-repair-intro" role="note"></div>
         <p class="q-prompt" id="quiz-prompt"></p>
+        <button class="hint-btn" id="btn-hint" type="button" style="display:none">Hint</button>
+        <div class="hint-panel" id="quiz-hint-panel">
+          <div class="hint-label">Hint</div>
+          <p id="quiz-hint-text"></p>
+        </div>
         <div id="quiz-choices"></div>
         <div class="confidence-box" id="quiz-confidence">
           <p class="conf-label">How sure are you?</p>
           <p class="conf-sub">Tap one to check your answer. You can change your choice above first.</p>
           <div class="conf-row">
-            <button class="conf-btn sure" id="btn-conf-sure" type="button">Sure</button>
-            <button class="conf-btn" id="btn-conf-guess" type="button">Guessing</button>
+            <button class="conf-btn sure" id="btn-conf-sure" type="button">I know this</button>
+            <button class="conf-btn" id="btn-conf-guess" type="button">I'm guessing</button>
           </div>
         </div>
         <div class="explain" id="quiz-explain">
           <div class="verdict" id="quiz-verdict"></div>
           <p id="quiz-explain-text"></p>
           <p id="quiz-confidence-note" class="confidence-note" style="display:none"></p>
+          <button class="review-cards-btn" id="btn-review-question-cards" type="button">Review this unit's flashcards</button>
         </div>
         <button class="next-btn" id="btn-next">Next question →</button>
       </section>
@@ -820,7 +857,7 @@
         });
       }
 
-      function syncAnswer(unitId, qIdx, picked, right, topic, confidence) {
+      function syncAnswer(unitId, qIdx, picked, right, topic, confidence, hintUsed) {
         sbFetch("/study_answers", {
           method: "POST",
           body: JSON.stringify({
@@ -830,7 +867,8 @@
             topic: topic,
             correct: !!right,
             chosen_index: picked,
-            confidence: confidence || null
+            confidence: confidence || null,
+            hint_used: !!hintUsed
           })
         });
       }
@@ -1020,7 +1058,7 @@
         var base = cached || embeddedContent(unitId);
         var cardsP = sbGetJSON("/study_cards?unit_id=eq." + encodeURIComponent(unitId) + "&select=card_index,front,back&order=card_index.asc");
         var questionsP = wantQuestions
-          ? sbGetJSON("/study_questions?unit_id=eq." + encodeURIComponent(unitId) + "&select=question_index,topic,prompt,choices,answer_index,explanation&order=question_index.asc")
+          ? sbGetJSON("/study_questions?unit_id=eq." + encodeURIComponent(unitId) + "&select=question_index,topic,prompt,choices,answer_index,explanation,hint&order=question_index.asc")
           : null;
 
         var cardsDone = cardsP ? cardsP.then(function (rows) {
@@ -1039,7 +1077,7 @@
                 typeof r.answer_index !== "number" || r.answer_index < 0 || r.answer_index >= r.choices.length) return { qs: base.questions, fetched: false };
           }
           return { qs: rows.map(function (r) {
-            return { topic: r.topic, prompt: r.prompt, choices: r.choices, correct: r.answer_index, explain: r.explanation };
+            return { topic: r.topic, prompt: r.prompt, choices: r.choices, correct: r.answer_index, explain: r.explanation, hint: (typeof r.hint === "string" ? r.hint : null) };
           }), fetched: true };
         }, function () { return { qs: base.questions, fetched: false }; }) : Promise.resolve({ qs: base.questions, fetched: false });
 
@@ -2288,16 +2326,63 @@
          answer_index, so shuffling can never change what's correct. */
       var qPos = 0, qScore = 0, qAnswered = false;
       var quizMode = "unit"; /* "unit" | "cold-check" */
-      var quizItems = [];    /* { unitId, qIdx, topic, prompt, choices, correct, explain, unitTitle, subject } */
+      var quizItems = [];    /* { unitId, qIdx, topic, prompt, choices, correct, explain, hint, unitTitle, subject } */
       var qDisplayOrder = []; /* display position -> original choice index */
       var qDisplayCorrect = -1; /* display position of the correct choice */
       var qSelectedDisplay = -1;
+      var qHintRevealed = false;
+      var qReviewUnitId = null;
+      var repairQueue = [];  /* wrong + "I know this" answers awaiting the one fix-it round */
+      var inRepairRound = false;
       var qResults = [];     /* { unitId, unitTitle, subject, topic, prompt, correct, confidence } */
 
       function buildDisplayOrder(n) {
         var idx = [];
         for (var i = 0; i < n; i++) idx.push(i);
         return shuffle(idx);
+      }
+
+      function questionHint(item) {
+        return item && typeof item.hint === "string" ? item.hint.trim() : "";
+      }
+
+      function revealHint() {
+        if (qAnswered || qHintRevealed) return;
+        var item = quizItems[qPos];
+        var hint = questionHint(item);
+        if (!hint) return;
+        qHintRevealed = true;
+        document.getElementById("quiz-hint-text").textContent = hint;
+        document.getElementById("quiz-hint-panel").classList.add("show");
+        var btn = document.getElementById("btn-hint");
+        btn.disabled = true;
+        btn.style.display = "none";
+      }
+
+      function openQuestionFlashcards(unitId) {
+        var targetUnitId = unitId || qReviewUnitId;
+        if (!targetUnitId) return Promise.resolve(false);
+        var returnTo = quizMode === "cold-check" ? "home" : "unit";
+        return Promise.all([
+          fetchUnitContent(targetUnitId, false),
+          loadUnitStates(targetUnitId)
+        ]).then(function (res) {
+          var content = res[0] || {};
+          var cards = content.cards || [];
+          var u = unitById(targetUnitId);
+          var label = u ? ((u.subject || "") + ((u.subject && u.title) ? " · " : "") + (u.title || targetUnitId)) : null;
+          var entries = cards.map(function (card, idx) {
+            return { unitId: targetUnitId, idx: idx, front: card.front, back: card.back, label: label };
+          });
+          if (returnTo === "unit") {
+            currentUnitId = targetUnitId;
+            currentCards = cards;
+            var cached = contentCache[targetUnitId];
+            if (cached && cached.questions instanceof Array) currentQuestions = cached.questions;
+          }
+          beginSession(entries, returnTo);
+          return true;
+        });
       }
 
       /* ---------- Retake engine ----------
@@ -2436,6 +2521,83 @@
         return v;
       }
 
+      /* ---------- Confidence repair queue ----------
+         A wrong answer given with "I know this" earns one later
+         fix-it question on the same topic and unit. The queue is
+         first-come and capped at three; answers inside the fix-it
+         round itself never queue another round. */
+      function resetRepairState() {
+        repairQueue = [];
+        inRepairRound = false;
+      }
+
+      function queueConfidenceRepair(item, displayOrder) {
+        if (inRepairRound || !item || repairQueue.length >= 3) return false;
+        repairQueue.push({
+          unitId: item.unitId,
+          qIdx: item.qIdx,
+          topic: item.topic,
+          item: cloneItem(item),
+          displayOrder: displayOrder ? displayOrder.slice() : []
+        });
+        return true;
+      }
+
+      function repairQuestionPool(unitId) {
+        var u = unitById(unitId);
+        var questions = (quizMode === "unit" && unitId === currentUnitId)
+          ? currentQuestions
+          : loadedQuestionsForUnit(unitId);
+        return (questions || []).map(function (q, i) {
+          return {
+            unitId: unitId, qIdx: i, topic: q.topic, prompt: q.prompt,
+            choices: q.choices.slice(), correct: q.correct, explain: q.explain, hint: q.hint,
+            unitTitle: u ? (u.title || unitId) : unitId, subject: u ? (u.subject || "") : ""
+          };
+        });
+      }
+
+      function buildRepairItems() {
+        var served = {};
+        quizItems.forEach(function (item) {
+          served[item.unitId + "|" + item.qIdx] = true;
+          if (typeof item.variantOf === "number") served[item.unitId + "|" + item.variantOf] = true;
+        });
+        var chosen = {};
+        return repairQueue.map(function (entry) {
+          var alternative = null;
+          repairQuestionPool(entry.unitId).forEach(function (candidate) {
+            var key = candidate.unitId + "|" + candidate.qIdx;
+            if (!alternative && candidate.topic === entry.topic && !served[key] && !chosen[key]) {
+              alternative = candidate;
+            }
+          });
+          var repair;
+          if (alternative) {
+            repair = cloneItem(alternative);
+            chosen[alternative.unitId + "|" + alternative.qIdx] = true;
+          } else {
+            repair = cloneItem(entry.item);
+            repair.repairRepeat = true;
+            repair.previousDisplayOrder = entry.displayOrder.slice();
+          }
+          repair.isRepair = true;
+          repair.repairTopic = entry.topic;
+          return repair;
+        });
+      }
+
+      function startRepairRound() {
+        var repairs = buildRepairItems();
+        if (!repairs.length) return false;
+        repairQueue = [];
+        inRepairRound = true;
+        quizItems = repairs;
+        qPos = 0;
+        renderQuestion();
+        return true;
+      }
+
       /* Replace a repeat with a sibling question on the same topic
          (same concept, different surface — the seeded-variant style),
          and make sure last time's correct answer is sitting in the
@@ -2469,7 +2631,7 @@
       function buildUnitQuizItems() {
         var u = unitById(currentUnitId);
         var pool = currentQuestions.map(function (q, i) {
-          return { unitId: currentUnitId, qIdx: i, topic: q.topic, prompt: q.prompt, choices: q.choices.slice(), correct: q.correct, explain: q.explain, unitTitle: u ? u.title : "", subject: u ? (u.subject || "") : "" };
+          return { unitId: currentUnitId, qIdx: i, topic: q.topic, prompt: q.prompt, choices: q.choices.slice(), correct: q.correct, explain: q.explain, hint: q.hint, unitTitle: u ? u.title : "", subject: u ? (u.subject || "") : "" };
         });
         var last = loadRetake(currentUnitId);
         quizAttemptNo = last ? (last.attempt || 0) + 1 : 1;
@@ -2527,6 +2689,7 @@
         quizMode = "unit";
         quizItems = buildUnitQuizItems();
         qPos = 0; qScore = 0; qResults = [];
+        resetRepairState();
         show("view-quiz");
         renderQuestion();
       }
@@ -2558,7 +2721,7 @@
             var unitPool = [];
             res.questions.forEach(function (q, qi) {
               if (!q || !(q.choices instanceof Array) || q.choices.length < 2) return;
-              var entry = { unitId: res.unit.id, qIdx: qi, topic: q.topic, prompt: q.prompt, choices: q.choices.slice(), correct: q.correct, explain: q.explain, unitTitle: res.unit.title || res.unit.id, subject: res.unit.subject || "" };
+              var entry = { unitId: res.unit.id, qIdx: qi, topic: q.topic, prompt: q.prompt, choices: q.choices.slice(), correct: q.correct, explain: q.explain, hint: q.hint, unitTitle: res.unit.title || res.unit.id, subject: res.unit.subject || "" };
               pool.push(entry);
               unitPool.push(entry);
             });
@@ -2660,6 +2823,7 @@
           }));
           quizMode = "cold-check";
           qPos = 0; qScore = 0; qResults = [];
+          resetRepairState();
           show("view-quiz");
           renderQuestion();
         }, function () {
@@ -2671,6 +2835,8 @@
       function renderQuestion() {
         qAnswered = false;
         qSelectedDisplay = -1;
+        qHintRevealed = false;
+        qReviewUnitId = null;
         var item = quizItems[qPos];
         var topicEl = document.getElementById("quiz-topic");
         if (quizMode === "cold-check") {
@@ -2681,10 +2847,34 @@
           topicEl.textContent = item.topic;
           topicEl.style.display = "";
         }
+        var repairIntro = document.getElementById("quiz-repair-intro");
+        if (inRepairRound && qPos === 0) {
+          repairIntro.textContent = "You marked 'I know this' on this one — let's make that true.";
+          repairIntro.classList.add("show");
+        } else {
+          repairIntro.textContent = "";
+          repairIntro.classList.remove("show");
+        }
         document.getElementById("quiz-prompt").textContent = item.prompt;
         document.getElementById("quiz-count").textContent = (qPos + 1) + " of " + quizItems.length;
         document.getElementById("quiz-progress").style.width = (qPos / quizItems.length * 100) + "%";
+        var hintBtn = document.getElementById("btn-hint");
+        var hintPanel = document.getElementById("quiz-hint-panel");
+        document.getElementById("quiz-hint-text").textContent = "";
+        hintPanel.classList.remove("show");
+        hintBtn.disabled = false;
+        hintBtn.style.display = questionHint(item) ? "" : "none";
+        var reviewBtn = document.getElementById("btn-review-question-cards");
+        reviewBtn.classList.remove("show");
+        reviewBtn.disabled = false;
         qDisplayOrder = buildDisplayOrder(item.choices.length);
+        if (item.repairRepeat && item.previousDisplayOrder &&
+            item.previousDisplayOrder.length === qDisplayOrder.length && qDisplayOrder.length > 1) {
+          var sameDisplayOrder = qDisplayOrder.every(function (choiceIdx, displayIdx) {
+            return choiceIdx === item.previousDisplayOrder[displayIdx];
+          });
+          if (sameDisplayOrder) qDisplayOrder.push(qDisplayOrder.shift());
+        }
         qDisplayCorrect = qDisplayOrder.indexOf(item.correct);
         var box = document.getElementById("quiz-choices");
         box.innerHTML = "";
@@ -2725,8 +2915,9 @@
         var right = pickedOriginal === item.correct;
         /* Verification invariant: right === (qSelectedDisplay === qDisplayCorrect) */
         if (right) qScore++;
-        syncAnswer(item.unitId, item.qIdx, pickedOriginal, right, item.topic, confidence);
+        syncAnswer(item.unitId, item.qIdx, pickedOriginal, right, item.topic, confidence, qHintRevealed);
         recordLocalAnswer(item.unitId, item.topic, right, confidence);
+        if (!right && confidence === "sure") queueConfidenceRepair(item, qDisplayOrder);
         qResults.push({ unitId: item.unitId, qIdx: item.qIdx, variantOf: (typeof item.variantOf === "number" ? item.variantOf : null), unitTitle: item.unitTitle, subject: item.subject, topic: item.topic, prompt: item.prompt, correct: right, confidence: confidence });
         document.getElementById("btn-conf-sure").disabled = true;
         document.getElementById("btn-conf-guess").disabled = true;
@@ -2753,9 +2944,14 @@
         } else {
           note.style.display = "none"; note.textContent = "";
         }
+        qReviewUnitId = right ? null : item.unitId;
+        var reviewBtn = document.getElementById("btn-review-question-cards");
+        reviewBtn.classList.toggle("show", !right);
+        reviewBtn.disabled = false;
         document.getElementById("quiz-explain").classList.add("show");
         var next = document.getElementById("btn-next");
-        next.textContent = qPos === quizItems.length - 1 ? "See my score →" : "Next question →";
+        var hasNextQuestion = qPos < quizItems.length - 1 || (!inRepairRound && repairQueue.length > 0);
+        next.textContent = hasNextQuestion ? "Next question →" : "See my score →";
         next.classList.add("show");
       }
 
@@ -2786,49 +2982,54 @@
         wrap.classList.add("show");
       }
 
+      function finishQuiz() {
+        var total = qResults.length;
+        document.getElementById("quiz-final-score").textContent = qScore + " / " + total;
+        var againBtn = document.getElementById("btn-quiz-again");
+        var backUnitBtn = document.getElementById("btn-quiz-done-back");
+        var backHomeBtn = document.getElementById("btn-quiz-done-home");
+        if (quizMode === "cold-check") {
+          saveRetake("cold-check", quizAttemptNo, qResults);
+          syncAttempt("cold-check", qScore, total, "cold-check");
+          var cmsg;
+          if (qScore === total) cmsg = "Perfect cold check — you remembered this cold, across subjects. That's real mastery.";
+          else if (qScore >= Math.ceil(total * 0.75)) cmsg = "Strong cold check. Look at the breakdown below — the misses show exactly what to re-read.";
+          else if (qScore >= Math.ceil(total * 0.5)) cmsg = "Good effort. The breakdown below shows where each question came from — start your next session there.";
+          else cmsg = "Cold checks are meant to be hard — they show what's actually stuck. Use the breakdown below to pick your next unit.";
+          document.getElementById("quiz-final-text").textContent = cmsg;
+          againBtn.textContent = "New cold check";
+          backUnitBtn.style.display = "none";
+          backHomeBtn.style.display = "";
+        } else {
+          saveRetake(currentUnitId, quizAttemptNo, qResults);
+          var prev = quizRecordFor(currentUnitId);
+          var best = prev && typeof prev.best === "number" ? Math.max(prev.best, qScore) : qScore;
+          saveJSON(quizKey(currentUnitId), { last: qScore, best: best, when: Date.now(), total: total });
+          syncAttempt(currentUnitId, qScore, total, "unit");
+          var msg;
+          if (qScore === total) msg = "Perfect score — you've got this unit down. Keep the flashcards cycling so it stays that way.";
+          else if (qScore >= Math.ceil(total * 0.75)) msg = "Strong work. Re-read the explanations for the ones you missed, then try again to lock them in.";
+          else if (qScore >= Math.ceil(total * 0.5)) msg = "Good start. Flip through the flashcards for the topics you missed, then take the quiz again.";
+          else msg = "This is exactly what practice is for. Go through the flashcards first, take your time, then try the quiz again.";
+          document.getElementById("quiz-final-text").textContent = msg + " Best score so far: " + best + " / " + total + ".";
+          againBtn.textContent = "Take it again";
+          backUnitBtn.style.display = "";
+          backHomeBtn.style.display = "none";
+          refreshUnitView();
+        }
+        renderResultsList();
+        updateMasteryBadges();
+        show("view-quiz-done");
+      }
+
       function nextQuestion() {
         qPos++;
-        if (qPos >= quizItems.length) {
-          var total = quizItems.length;
-          document.getElementById("quiz-final-score").textContent = qScore + " / " + total;
-          var againBtn = document.getElementById("btn-quiz-again");
-          var backUnitBtn = document.getElementById("btn-quiz-done-back");
-          var backHomeBtn = document.getElementById("btn-quiz-done-home");
-          if (quizMode === "cold-check") {
-            saveRetake("cold-check", quizAttemptNo, qResults);
-            syncAttempt("cold-check", qScore, total, "cold-check");
-            var cmsg;
-            if (qScore === total) cmsg = "Perfect cold check — you remembered this cold, across subjects. That's real mastery.";
-            else if (qScore >= Math.ceil(total * 0.75)) cmsg = "Strong cold check. Look at the breakdown below — the misses show exactly what to re-read.";
-            else if (qScore >= Math.ceil(total * 0.5)) cmsg = "Good effort. The breakdown below shows where each question came from — start your next session there.";
-            else cmsg = "Cold checks are meant to be hard — they show what's actually stuck. Use the breakdown below to pick your next unit.";
-            document.getElementById("quiz-final-text").textContent = cmsg;
-            againBtn.textContent = "New cold check";
-            backUnitBtn.style.display = "none";
-            backHomeBtn.style.display = "";
-          } else {
-            saveRetake(currentUnitId, quizAttemptNo, qResults);
-            var prev = quizRecordFor(currentUnitId);
-            var best = prev && typeof prev.best === "number" ? Math.max(prev.best, qScore) : qScore;
-            saveJSON(quizKey(currentUnitId), { last: qScore, best: best, when: Date.now(), total: total });
-            syncAttempt(currentUnitId, qScore, total, "unit");
-            var msg;
-            if (qScore === total) msg = "Perfect score — you've got this unit down. Keep the flashcards cycling so it stays that way.";
-            else if (qScore >= Math.ceil(total * 0.75)) msg = "Strong work. Re-read the explanations for the ones you missed, then try again to lock them in.";
-            else if (qScore >= Math.ceil(total * 0.5)) msg = "Good start. Flip through the flashcards for the topics you missed, then take the quiz again.";
-            else msg = "This is exactly what practice is for. Go through the flashcards first, take your time, then try the quiz again.";
-            document.getElementById("quiz-final-text").textContent = msg + " Best score so far: " + best + " / " + total + ".";
-            againBtn.textContent = "Take it again";
-            backUnitBtn.style.display = "";
-            backHomeBtn.style.display = "none";
-            refreshUnitView();
-          }
-          renderResultsList();
-          updateMasteryBadges();
-          show("view-quiz-done");
-        } else {
+        if (qPos < quizItems.length) {
           renderQuestion();
+          return;
         }
+        if (!inRepairRound && repairQueue.length && startRepairRound()) return;
+        finishQuiz();
       }
 
       /* ---------- PWA: service worker + push reminders ----------
@@ -2862,7 +3063,7 @@
          The build stamp printed at the bottom of the home view; bump
          it (with the worker's CACHE_NAME) whenever the shell changes
          so "am I on the latest?" is answerable at a glance. */
-      var BUILD_STAMP = "Nov 9, 2026 · shell v12";
+      var BUILD_STAMP = "Nov 9, 2026 · shell v13";
 
       var appToastTimer = null;
       function showAppToast(text, holdMs) {
@@ -3537,6 +3738,10 @@
       document.getElementById("btn-cold-check").addEventListener("click", startColdCheck);
       document.getElementById("btn-conf-sure").addEventListener("click", function () { answer("sure"); });
       document.getElementById("btn-conf-guess").addEventListener("click", function () { answer("guessing"); });
+      document.getElementById("btn-hint").addEventListener("click", revealHint);
+      document.getElementById("btn-review-question-cards").addEventListener("click", function () {
+        openQuestionFlashcards(qReviewUnitId);
+      });
       document.getElementById("btn-back-home").addEventListener("click", function () {
         updateHomeBadges();
         updateReviewAllSub();
