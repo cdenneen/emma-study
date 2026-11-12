@@ -403,7 +403,7 @@
           <div class="score-line">Loading your subjects…</div>
         </div>
 
-        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v10
+        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v11
           <span class="stamp-hint">Tap Refresh (top right) to check for a new version — press &amp; hold it only if the app seems stuck.</span>
         </p>
       </section>
@@ -1116,9 +1116,11 @@
          first (lowest grade first), then the other honors subjects,
          then non-honors subjects below 95. A non-honors subject at
          95 or above is never a focus need and is excluded entirely.
-         Within a grade-driven subject, the usual per-subject signals
-         pick what the card offers — worst confident-and-wrong topic,
-         else weakest topic or in-progress unit, else most flashcards
+         Within a grade-driven subject, a loaded real-test weak
+         topic (study_weak_topics) that matches questions on file
+         picks what the card offers; otherwise the usual per-subject
+         signals pick — worst confident-and-wrong topic, else
+         weakest topic or in-progress unit, else most flashcards
          due, else a not-started unit — and the card's reason line
          cites the grade. Subjects with no grade on file keep the
          signal-based ranking (collectSignalRecs), after the graded
@@ -1127,6 +1129,7 @@
          are unaffected: every subject stays in the cold-check draw
          regardless of grades. */
       var courseGradesBySubject = null; /* subject -> { grade, honors, course } once loaded */
+      var weakTopicsBySubject = null;   /* subject -> weak-topic rows, weakest first, once loaded */
 
       /* Grade rows are keyed by course subject labels ("Science",
          "Social Studies") while units carry subject slugs
@@ -1173,6 +1176,99 @@
         }, function () {});
       }
 
+      /* Real-test weak topics live in the study schema too. If this
+         fetch fails, weakTopicsBySubject stays null and Focus next
+         keeps the exact v10 signal behavior — no error is shown. */
+      function loadWeakTopics() {
+        var p = sbFetch("/study_weak_topics?study_id=eq." + STUDY_ID + "&select=subject,unit_id,topic,weight,detail,source&order=weight.desc", {
+          method: "GET",
+          headers: { "Accept-Profile": "study" }
+        });
+        if (!p || typeof p.then !== "function") return;
+        var jp = p.then(function (r) {
+          if (!r || !r.ok) { throw new Error("supabase weak topics " + (r ? r.status : "no response")); }
+          return r.json();
+        });
+        jp.then(function (rows) {
+          if (!rows || !(rows instanceof Array)) return;
+          var map = {};
+          rows.forEach(function (r) {
+            if (!r || typeof r.subject !== "string" || typeof r.unit_id !== "string" ||
+                typeof r.topic !== "string" || typeof r.weight !== "number") return;
+            var key = gradeSubjectKey(r.subject);
+            if (!key) return;
+            (map[key] = map[key] || []).push({
+              unitId: r.unit_id,
+              topic: r.topic,
+              weight: r.weight,
+              detail: (typeof r.detail === "string") ? r.detail : "",
+              source: (typeof r.source === "string") ? r.source : ""
+            });
+          });
+          Object.keys(map).forEach(function (key) {
+            map[key].sort(function (a, b) { return b.weight - a.weight; });
+          });
+          weakTopicsBySubject = map;
+          renderFocusNext();
+          /* Load the candidate units' questions so the weak-topic
+             match below runs against questions actually on file. */
+          var seen = {};
+          var jobs = [];
+          Object.keys(map).forEach(function (key) {
+            map[key].forEach(function (row) {
+              if (seen[row.unitId] || !unitById(row.unitId)) return;
+              seen[row.unitId] = true;
+              jobs.push(fetchUnitContent(row.unitId, true));
+            });
+          });
+          if (jobs.length && typeof Promise !== "undefined" && Promise.all) {
+            Promise.all(jobs).then(function () { renderFocusNext(); }, function () { renderFocusNext(); });
+          }
+        }, function () {});
+      }
+
+      function loadedQuestionsForUnit(unitId) {
+        var cached = contentCache[unitId];
+        if (cached && cached.questions instanceof Array) return cached.questions;
+        var embedded = embeddedContent(unitId);
+        return (embedded && embedded.questions instanceof Array) ? embedded.questions : [];
+      }
+
+      /* Short, kind note built only from the row itself: the test
+         named in its detail line plus its topic. */
+      function weakTopicNote(row) {
+        var topic = row.topic.charAt(0).toLowerCase() + row.topic.slice(1);
+        var label = "";
+        if (row.detail) {
+          var colon = row.detail.indexOf(":");
+          if (colon > 0) label = row.detail.slice(0, colon);
+        }
+        if (label) return "From the " + label + ": " + topic + " will grow stronger with extra practice.";
+        if (row.source) return "From " + row.source + ": " + topic + " will grow stronger with extra practice.";
+        return topic.charAt(0).toUpperCase() + topic.slice(1) + " will grow stronger with extra practice.";
+      }
+
+      /* The highest-weight weak topic for this subject that has
+         questions on file in its unit, or null when there is none. */
+      function focusCardForWeakTopic(subject, reason, usedUnits) {
+        if (!weakTopicsBySubject) return null;
+        var rows = weakTopicsBySubject[subject];
+        if (!rows || !rows.length) return null;
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          if (usedUnits[row.unitId]) continue;
+          var u = unitById(row.unitId);
+          if (!u || (u.subject || "") !== subject) continue;
+          var questions = loadedQuestionsForUnit(row.unitId);
+          for (var j = 0; j < questions.length; j++) {
+            if (questions[j] && questions[j].topic === row.topic) {
+              return { kind: "quiz", unitId: row.unitId, title: row.topic, reason: reason + " " + weakTopicNote(row), btn: "Practice" };
+            }
+          }
+        }
+        return null;
+      }
+
       function gradeReasonLine(g) {
         var pct = Math.round(g.grade);
         if (g.honors && g.grade < 85) {
@@ -1192,6 +1288,8 @@
         var units = allUnits.filter(function (u) { return (u.subject || "") === subject; });
         if (!units.length) return null;
         var reason = gradeReasonLine(g);
+        var weakCard = focusCardForWeakTopic(subject, reason, usedUnits);
+        if (weakCard) return weakCard;
         var stats = sureTopicStats();
         var inSubject = Object.keys(stats).map(function (k) { return stats[k]; }).filter(function (s) {
           var u = unitById(s.unitId);
@@ -1516,6 +1614,7 @@
       function loadHomeStats() {
         loadServerMastery();
         loadCourseGrades();
+        loadWeakTopics();
         var statesP = sbGetJSON("/study_card_states?study_id=eq." + STUDY_ID + "&select=unit_id,card_index,box,due_at,last_result");
         if (statesP) {
           statesP.then(function (rows) {
@@ -2357,7 +2456,7 @@
          The build stamp printed at the bottom of the home view; bump
          it (with the worker's CACHE_NAME) whenever the shell changes
          so "am I on the latest?" is answerable at a glance. */
-      var BUILD_STAMP = "Nov 9, 2026 · shell v10";
+      var BUILD_STAMP = "Nov 9, 2026 · shell v11";
 
       var appToastTimer = null;
       function showAppToast(text, holdMs) {
