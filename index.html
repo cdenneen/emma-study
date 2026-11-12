@@ -116,6 +116,64 @@
       .focus-btn:active { transform: scale(0.97); }
       .focus-done { margin: 0 0 6px; font-weight: 700; color: var(--ink-soft); font-size: 0.95rem; }
 
+      /* Homework photo checks (home) */
+      .homework-section { margin: 22px 0 4px; }
+      .homework-head, .homework-checks-head {
+        font-size: 0.85rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--accent); margin: 16px 0 8px;
+      }
+      .homework-intro { color: var(--ink-soft); font-size: 0.98rem; font-weight: 600; margin: 0 0 14px; }
+      .homework-label { font-size: 0.9rem; font-weight: 900; margin: 0 0 8px; }
+      .homework-subjects { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+      .homework-chip {
+        border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+        font-family: inherit; font-size: 0.92rem; font-weight: 800;
+        padding: 9px 13px; border-radius: 999px; cursor: pointer; min-height: 44px;
+      }
+      .homework-chip.is-selected { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+      .homework-chip:active { transform: scale(0.97); }
+      .homework-upload-btn { margin-bottom: 10px; }
+      .homework-file-input {
+        position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden;
+        clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+      }
+      .homework-preview {
+        display: flex; align-items: center; gap: 12px;
+        background: var(--surface); border: 1px solid var(--line);
+        border-radius: 14px; padding: 10px 12px; margin-bottom: 10px;
+      }
+      .homework-preview[hidden] { display: none; }
+      .homework-thumb {
+        width: 72px; height: 72px; object-fit: cover; flex-shrink: 0;
+        border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2);
+      }
+      .homework-preview-main { flex: 1; min-width: 0; }
+      .homework-file-name {
+        font-size: 0.9rem; font-weight: 800; line-height: 1.35;
+        margin: 0 0 8px; overflow-wrap: anywhere;
+      }
+      .homework-status { font-weight: 800; color: var(--good); margin: 8px 0; }
+      .homework-status:empty { display: none; }
+      .homework-error { font-weight: 800; color: var(--bad); margin: 8px 0; }
+      .homework-error:empty { display: none; }
+      .homework-card {
+        background: var(--surface); border: 1px solid var(--line);
+        border-radius: 14px; padding: 12px 14px; margin-bottom: 8px;
+      }
+      .homework-card-head { font-size: 0.98rem; font-weight: 900; line-height: 1.35; margin-bottom: 4px; }
+      .homework-summary { font-size: 0.94rem; font-weight: 700; line-height: 1.45; margin: 4px 0 8px; }
+      .homework-waiting { font-size: 0.92rem; font-weight: 700; color: var(--ink-soft); margin: 4px 0 0; }
+      .homework-item { border-top: 1px solid var(--line); padding: 9px 0 2px; margin-top: 9px; }
+      .homework-item:first-of-type { border-top: none; margin-top: 4px; }
+      .homework-item-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+      .homework-problem { font-weight: 900; font-size: 0.95rem; }
+      .homework-verdict { font-size: 0.78rem; font-weight: 900; letter-spacing: 0.03em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
+      .homework-verdict.correct { background: var(--good-soft); color: var(--good); }
+      .homework-verdict.worth_a_look { background: var(--warn-soft); color: var(--warn); }
+      .homework-verdict.needs_retake { background: var(--bad-soft); color: var(--bad); }
+      .homework-note, .homework-rule { font-size: 0.92rem; font-weight: 600; line-height: 1.45; margin: 5px 0 4px; }
+      .homework-rule { color: var(--ink-soft); }
+
       /* Subject / unit list (home) */
       .subject-head {
         font-size: 0.85rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase;
@@ -399,11 +457,43 @@
 
         <button class="big-btn secondary" id="btn-review-all">Review all flashcards<small id="review-all-sub">A mixed session of every card that's due today</small></button>
 
+        <div class="homework-section" id="homework-section">
+          <p class="homework-head">Homework</p>
+          <p class="homework-intro">Send a photo of your homework and get it checked here.</p>
+
+          <p class="homework-label" id="homework-subject-label">Subject</p>
+          <div class="homework-subjects" id="homework-subjects" role="group" aria-labelledby="homework-subject-label">
+            <button class="homework-chip" type="button" data-homework-subject="Math">Math</button>
+            <button class="homework-chip" type="button" data-homework-subject="Science">Science</button>
+            <button class="homework-chip" type="button" data-homework-subject="Social Studies">Social Studies</button>
+            <button class="homework-chip" type="button" data-homework-subject="ELA">ELA</button>
+            <button class="homework-chip" type="button" data-homework-subject="French">French</button>
+            <button class="homework-chip is-selected" type="button" data-homework-subject="Not sure">Not sure</button>
+          </div>
+
+          <label class="big-btn secondary homework-upload-btn" for="homework-file">Upload homework<small>Pick a clear photo of your homework</small></label>
+          <input class="homework-file-input" id="homework-file" type="file" accept="image/*" />
+
+          <div class="homework-preview" id="homework-preview" hidden>
+            <img class="homework-thumb" id="homework-thumb" alt="Selected homework photo" />
+            <div class="homework-preview-main">
+              <p class="homework-file-name" id="homework-file-name"></p>
+              <button class="focus-btn" id="btn-homework-send" type="button">Send for checking</button>
+            </div>
+          </div>
+
+          <p class="homework-status" id="homework-status" role="status"></p>
+          <p class="homework-error" id="homework-error" role="alert"></p>
+
+          <p class="homework-checks-head">Homework checks</p>
+          <div id="homework-checks"></div>
+        </div>
+
         <div id="units-container">
           <div class="score-line">Loading your subjects…</div>
         </div>
 
-        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v11
+        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v12
           <span class="stamp-hint">Tap Refresh (top right) to check for a new version — press &amp; hold it only if the app seems stuck.</span>
         </p>
       </section>
@@ -1569,6 +1659,321 @@
         });
       }
 
+      /* ---------- Homework photo checks ----------
+         Emma picks a subject, chooses one homework photo, and sends
+         it to the private homework storage bucket. A row in
+         study_homework_uploads marks the photo as waiting; finished
+         checks come back through study_homework_feedback and are
+         listed under the upload controls. */
+      var HOMEWORK_SUBJECTS = ["Math", "Science", "Social Studies", "ELA", "French", "Not sure"];
+      var homeworkSelectedSubject = "Not sure";
+      var homeworkSelectedFile = null;
+      var homeworkSending = false;
+      var homeworkPreviewUrl = null;
+
+      function homeworkSubjectValue(label) {
+        return label === "Not sure" ? null : label;
+      }
+
+      function homeworkFileExtension(file) {
+        var name = file && typeof file.name === "string" ? file.name : "";
+        var match = name.match(/\.([A-Za-z0-9]+)$/);
+        if (match) {
+          var ext = match[1].toLowerCase();
+          return ext === "jpeg" ? "jpg" : ext;
+        }
+        var type = file && typeof file.type === "string" ? file.type.toLowerCase() : "";
+        if (type === "image/png") return "png";
+        if (type === "image/webp") return "webp";
+        if (type === "image/heic") return "heic";
+        if (type === "image/heif") return "heif";
+        return "jpg";
+      }
+
+      function homeworkStoragePath(file, when) {
+        var stamp = (when ? new Date(when) : new Date()).toISOString().replace(/[:.]/g, "-");
+        return STUDY_ID + "/" + stamp + "." + homeworkFileExtension(file);
+      }
+
+      function homeworkStorageUrl(storagePath) {
+        return SUPABASE_URL + "/storage/v1/object/homework/" + storagePath;
+      }
+
+      function uploadHomeworkPhoto(file, storagePath) {
+        if (typeof fetch !== "function") return Promise.reject(new Error("upload unavailable"));
+        return fetch(homeworkStorageUrl(storagePath), {
+          method: "POST",
+          headers: {
+            "apikey": SB_KEY,
+            "Authorization": "Bearer " + SB_KEY,
+            "Content-Type": (file && file.type) ? file.type : "application/octet-stream"
+          },
+          body: file
+        }).then(function (r) {
+          if (!r || !r.ok) throw new Error("homework upload " + (r ? r.status : "no response"));
+          return r;
+        });
+      }
+
+      function insertHomeworkUpload(row) {
+        var p = sbFetch("/study_homework_uploads", {
+          method: "POST",
+          body: JSON.stringify(row)
+        });
+        if (!p || typeof p.then !== "function") return Promise.reject(new Error("homework row unavailable"));
+        return p.then(function (r) {
+          if (!r || !r.ok) throw new Error("homework row " + (r ? r.status : "no response"));
+          return r;
+        });
+      }
+
+      function homeworkPushEndpoint() {
+        if (!("serviceWorker" in navigator)) return Promise.resolve(null);
+        return Promise.resolve()
+          .then(function () { return getSwRegistration(); })
+          .then(function (reg) {
+            if (!reg || !reg.pushManager || typeof reg.pushManager.getSubscription !== "function") return null;
+            return reg.pushManager.getSubscription();
+          })
+          .then(function (sub) {
+            return sub && typeof sub.endpoint === "string" ? sub.endpoint : null;
+          })
+          .catch(function () { return null; });
+      }
+
+      function setHomeworkSubject(label) {
+        homeworkSelectedSubject = HOMEWORK_SUBJECTS.indexOf(label) >= 0 ? label : "Not sure";
+        var chips = document.querySelectorAll("[data-homework-subject]");
+        for (var i = 0; i < chips.length; i++) {
+          chips[i].classList.toggle("is-selected", chips[i].getAttribute("data-homework-subject") === homeworkSelectedSubject);
+        }
+        return homeworkSelectedSubject;
+      }
+
+      function setHomeworkStatus(text) {
+        var el = document.getElementById("homework-status");
+        if (el) el.textContent = text || "";
+      }
+
+      function setHomeworkError(text) {
+        var el = document.getElementById("homework-error");
+        if (el) el.textContent = text || "";
+      }
+
+      function resetHomeworkPicker() {
+        homeworkSelectedFile = null;
+        if (homeworkPreviewUrl && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+          URL.revokeObjectURL(homeworkPreviewUrl);
+        }
+        homeworkPreviewUrl = null;
+        var input = document.getElementById("homework-file");
+        if (input) input.value = "";
+        var preview = document.getElementById("homework-preview");
+        if (preview) preview.hidden = true;
+        var thumb = document.getElementById("homework-thumb");
+        if (thumb) thumb.removeAttribute("src");
+        var name = document.getElementById("homework-file-name");
+        if (name) name.textContent = "";
+        var send = document.getElementById("btn-homework-send");
+        if (send) send.disabled = false;
+      }
+
+      function chooseHomeworkFile(file) {
+        if (!file) { resetHomeworkPicker(); return null; }
+        homeworkSelectedFile = file;
+        setHomeworkStatus("");
+        setHomeworkError("");
+        if (homeworkPreviewUrl && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+          URL.revokeObjectURL(homeworkPreviewUrl);
+          homeworkPreviewUrl = null;
+        }
+        var thumb = document.getElementById("homework-thumb");
+        if (thumb && typeof URL !== "undefined" && typeof URL.createObjectURL === "function") {
+          homeworkPreviewUrl = URL.createObjectURL(file);
+          thumb.src = homeworkPreviewUrl;
+        } else if (thumb) {
+          thumb.removeAttribute("src");
+        }
+        var name = document.getElementById("homework-file-name");
+        if (name) name.textContent = file.name || "Homework photo";
+        var preview = document.getElementById("homework-preview");
+        if (preview) preview.hidden = false;
+        return file;
+      }
+
+      function sendHomework() {
+        if (homeworkSending || !homeworkSelectedFile) return Promise.resolve(false);
+        homeworkSending = true;
+        var file = homeworkSelectedFile;
+        var send = document.getElementById("btn-homework-send");
+        if (send) send.disabled = true;
+        setHomeworkStatus("");
+        setHomeworkError("");
+        var storagePath = homeworkStoragePath(file, new Date());
+        return uploadHomeworkPhoto(file, storagePath)
+          .then(function () { return homeworkPushEndpoint(); })
+          .then(function (endpoint) {
+            return insertHomeworkUpload({
+              study_id: STUDY_ID,
+              subject: homeworkSubjectValue(homeworkSelectedSubject),
+              storage_path: storagePath,
+              push_endpoint: endpoint || null
+            });
+          })
+          .then(function () {
+            setHomeworkStatus("Sent! Your homework check will show up here in a few minutes.");
+            resetHomeworkPicker();
+            return true;
+          })
+          .catch(function () {
+            setHomeworkError("That did not send. Please try again.");
+            return false;
+          })
+          .then(function (sent) {
+            homeworkSending = false;
+            var btn = document.getElementById("btn-homework-send");
+            if (btn) btn.disabled = false;
+            return sent;
+          });
+      }
+
+      function homeworkVerdictLabel(verdict) {
+        if (verdict === "correct") return "Looks right";
+        if (verdict === "needs_retake") return "Couldn't read this one";
+        return "Worth another look";
+      }
+
+      function homeworkVerdictClass(verdict) {
+        if (verdict === "correct" || verdict === "needs_retake") return verdict;
+        return "worth_a_look";
+      }
+
+      function homeworkTimeLabel(value) {
+        var d = value ? new Date(value) : null;
+        if (!d || isNaN(d.getTime())) return "";
+        try {
+          return d.toLocaleString([], {
+            month: "short", day: "numeric",
+            hour: "numeric", minute: "2-digit"
+          });
+        } catch (e) {
+          return d.toLocaleString();
+        }
+      }
+
+      function buildHomeworkCards(uploads, feedbackRows) {
+        if (!(uploads instanceof Array)) uploads = [];
+        if (!(feedbackRows instanceof Array)) feedbackRows = [];
+        var feedbackByUpload = {};
+        feedbackRows.forEach(function (row) {
+          if (!row || row.upload_id === null || typeof row.upload_id === "undefined") return;
+          var key = String(row.upload_id);
+          if (!feedbackByUpload[key]) feedbackByUpload[key] = row;
+        });
+        return uploads.slice(0, 10).map(function (upload) {
+          upload = upload || {};
+          var feedback = feedbackByUpload[String(upload.id)] || null;
+          var items = [];
+          if (feedback && feedback.items instanceof Array) {
+            items = feedback.items.map(function (item) {
+              item = item || {};
+              return {
+                problem: typeof item.problem === "string" && item.problem ? item.problem : "Problem",
+                verdict: typeof item.verdict === "string" ? item.verdict : "worth_a_look",
+                verdictLabel: homeworkVerdictLabel(item.verdict),
+                verdictClass: homeworkVerdictClass(item.verdict),
+                note: typeof item.note === "string" ? item.note : "",
+                rule: typeof item.rule === "string" ? item.rule : ""
+              };
+            });
+          }
+          var subject = typeof upload.subject === "string" && upload.subject ? upload.subject : "Not sure";
+          var timeLabel = homeworkTimeLabel(upload.created_at);
+          return {
+            id: upload.id,
+            subject: subject,
+            timeLabel: timeLabel,
+            heading: timeLabel ? subject + " · " + timeLabel : subject,
+            status: typeof upload.status === "string" ? upload.status : "",
+            waiting: !feedback && upload.status === "pending",
+            summary: feedback && typeof feedback.summary === "string" ? feedback.summary : "",
+            items: items
+          };
+        });
+      }
+
+      function renderHomeworkChecks(uploads, feedbackRows) {
+        var cards = buildHomeworkCards(uploads, feedbackRows);
+        var box = document.getElementById("homework-checks");
+        if (!box) return cards;
+        box.innerHTML = "";
+        cards.forEach(function (card) {
+          var el = document.createElement("div");
+          el.className = "homework-card";
+          var head = document.createElement("div");
+          head.className = "homework-card-head";
+          head.textContent = card.heading;
+          el.appendChild(head);
+          if (card.waiting) {
+            var waiting = document.createElement("p");
+            waiting.className = "homework-waiting";
+            waiting.textContent = "Waiting for its check…";
+            el.appendChild(waiting);
+          }
+          if (card.summary) {
+            var summary = document.createElement("p");
+            summary.className = "homework-summary";
+            summary.textContent = card.summary;
+            el.appendChild(summary);
+          }
+          card.items.forEach(function (item) {
+            var itemEl = document.createElement("div");
+            itemEl.className = "homework-item";
+            var itemHead = document.createElement("div");
+            itemHead.className = "homework-item-head";
+            var problem = document.createElement("span");
+            problem.className = "homework-problem";
+            problem.textContent = item.problem;
+            var verdict = document.createElement("span");
+            verdict.className = "homework-verdict " + item.verdictClass;
+            verdict.textContent = item.verdictLabel;
+            itemHead.appendChild(problem);
+            itemHead.appendChild(verdict);
+            itemEl.appendChild(itemHead);
+            if (item.note) {
+              var note = document.createElement("p");
+              note.className = "homework-note";
+              note.textContent = item.note;
+              itemEl.appendChild(note);
+            }
+            if (item.rule) {
+              var rule = document.createElement("p");
+              rule.className = "homework-rule";
+              rule.textContent = item.rule;
+              itemEl.appendChild(rule);
+            }
+            el.appendChild(itemEl);
+          });
+          box.appendChild(el);
+        });
+        return cards;
+      }
+
+      function loadHomeworkChecks() {
+        var uploadsP = sbGetJSON("/study_homework_uploads?study_id=eq." + STUDY_ID +
+          "&select=id,study_id,subject,storage_path,status,push_endpoint,created_at,processed_at&order=created_at.desc&limit=10");
+        var feedbackP = sbGetJSON("/study_homework_feedback?study_id=eq." + STUDY_ID +
+          "&select=id,upload_id,study_id,summary,items,created_at&order=created_at.desc");
+        if (!uploadsP || !feedbackP) return Promise.resolve([]);
+        return Promise.all([uploadsP, feedbackP]).then(function (res) {
+          return renderHomeworkChecks(res[0] || [], res[1] || []);
+        }).catch(function () { return []; });
+      }
+
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") loadHomeworkChecks();
+      });
+
       /* Start a unit's practice quiz straight from home — same
          retake-engine flow as the unit page's quiz button. If the
          unit turns out to have no questions, land on its unit page
@@ -1615,6 +2020,7 @@
         loadServerMastery();
         loadCourseGrades();
         loadWeakTopics();
+        loadHomeworkChecks();
         var statesP = sbGetJSON("/study_card_states?study_id=eq." + STUDY_ID + "&select=unit_id,card_index,box,due_at,last_result");
         if (statesP) {
           statesP.then(function (rows) {
@@ -2456,7 +2862,7 @@
          The build stamp printed at the bottom of the home view; bump
          it (with the worker's CACHE_NAME) whenever the shell changes
          so "am I on the latest?" is answerable at a glance. */
-      var BUILD_STAMP = "Nov 9, 2026 · shell v11";
+      var BUILD_STAMP = "Nov 9, 2026 · shell v12";
 
       var appToastTimer = null;
       function showAppToast(text, holdMs) {
@@ -3086,6 +3492,15 @@
       });
       document.getElementById("btn-next").addEventListener("click", nextQuestion);
       document.getElementById("btn-review-all").addEventListener("click", startReviewAll);
+      document.getElementById("homework-subjects").addEventListener("click", function (e) {
+        var chip = e.target && typeof e.target.closest === "function"
+          ? e.target.closest("[data-homework-subject]") : null;
+        if (chip) setHomeworkSubject(chip.getAttribute("data-homework-subject"));
+      });
+      document.getElementById("homework-file").addEventListener("change", function (e) {
+        chooseHomeworkFile(e.target.files && e.target.files.length ? e.target.files[0] : null);
+      });
+      document.getElementById("btn-homework-send").addEventListener("click", sendHomework);
       document.getElementById("btn-reminders").addEventListener("click", onRemindersTap);
       (function () {
         var chip = document.getElementById("btn-refresh");
