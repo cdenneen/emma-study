@@ -173,6 +173,60 @@
       .homework-verdict.needs_retake { background: var(--bad-soft); color: var(--bad); }
       .homework-note, .homework-rule { font-size: 0.92rem; font-weight: 600; line-height: 1.45; margin: 5px 0 4px; }
       .homework-rule { color: var(--ink-soft); }
+      /* v14: tabbed shell */
+      .wrap { padding-bottom: 112px; }
+      .tab-bar {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+        display: flex; justify-content: center; gap: 4px;
+        background: var(--surface); border-top: 1px solid var(--line);
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+        box-shadow: 0 -6px 20px rgba(34, 48, 31, 0.08);
+      }
+      .tab-bar[hidden] { display: none; }
+      .tab-btn {
+        position: relative; flex: 1; max-width: 150px; min-height: 48px;
+        border: 1px solid transparent; background: transparent; color: var(--ink-soft);
+        font-family: inherit; font-size: 0.92rem; font-weight: 900; border-radius: 999px; cursor: pointer;
+      }
+      .tab-btn.is-active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+      .tab-badge {
+        position: absolute; top: 2px; right: 10px; min-width: 20px; height: 20px;
+        padding: 0 5px; border-radius: 999px; background: var(--bad); color: #fff;
+        font-size: 0.72rem; font-weight: 900; line-height: 20px; text-align: center;
+      }
+      .tab-badge[hidden] { display: none; }
+      .today-line { font-weight: 800; color: var(--ink-soft); margin: 10px 2px 0; }
+      .today-line:empty { display: none; }
+      .mastery-bar { display: block; height: 6px; border-radius: 999px; background: var(--surface-2); margin-top: 8px; overflow: hidden; }
+      .mastery-bar-fill { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 999px; }
+      /* v14: homework pages + assignment list */
+      .homework-pages { display: flex; flex-wrap: wrap; gap: 10px; }
+      .homework-page { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+      .homework-page-label { font-size: 0.8rem; font-weight: 800; color: var(--ink-soft); }
+      .homework-page-remove {
+        border: 1px solid var(--line); background: var(--surface); color: var(--bad);
+        font-family: inherit; font-size: 0.78rem; font-weight: 800; border-radius: 999px; padding: 4px 10px; cursor: pointer;
+      }
+      .homework-send-btn { margin-top: 10px; }
+      .homework-day-head {
+        font-size: 0.85rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--ink-soft); margin: 18px 0 8px;
+      }
+      .homework-row-head { cursor: pointer; }
+      .homework-row-head .homework-card-head { margin-bottom: 0; }
+      .homework-detail[hidden] { display: none; }
+      .homework-earlier-toggle {
+        width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface);
+        color: var(--ink); font-family: inherit; font-size: 0.95rem; font-weight: 900;
+        border-radius: var(--radius); padding: 12px 16px; cursor: pointer; margin-bottom: 10px;
+      }
+      .cards-picker-btn {
+        display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+        background: var(--surface); border: 1px solid var(--line); color: var(--ink);
+        font-family: inherit; border-radius: var(--radius); padding: 12px 16px; margin-bottom: 8px; min-height: 52px;
+      }
+      .cards-picker-btn .unit-title { flex: 1; font-size: 1rem; font-weight: 800; }
+
 
       /* Subject / unit list (home) */
       .subject-head {
@@ -487,6 +541,23 @@
 
         <button class="big-btn secondary" id="btn-review-all">Review all flashcards<small id="review-all-sub">A mixed session of every card that's due today</small></button>
 
+        <p class="today-line" id="today-activity"></p>
+
+        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v14
+          <span class="stamp-hint">Tap Refresh (top right) to check for a new version — press &amp; hold it only if the app seems stuck.</span>
+        </p>
+      </section>
+
+      <!-- PRACTICE -->
+      <section id="view-practice" class="view">
+        <p class="homework-head">Practice</p>
+        <p class="homework-intro">Pick a subject and a unit. Tap a unit to open its flashcards and practice quiz.</p>
+        <div id="units-container">
+          <div class="score-line">Loading your subjects…</div>
+      </section>
+
+      <!-- HOMEWORK -->
+      <section id="view-homework" class="view">
         <div class="homework-section" id="homework-section">
           <p class="homework-head">Homework</p>
           <p class="homework-intro">Send a photo of your homework and get it checked here.</p>
@@ -501,15 +572,13 @@
             <button class="homework-chip is-selected" type="button" data-homework-subject="Not sure">Not sure</button>
           </div>
 
-          <label class="big-btn secondary homework-upload-btn" for="homework-file">Upload homework<small>Pick a clear photo of your homework</small></label>
-          <input class="homework-file-input" id="homework-file" type="file" accept="image/*" />
+          <label class="big-btn secondary homework-upload-btn" for="homework-file">Add a page<small>Pick a clear photo — add as many pages as you need</small></label>
+          <input class="homework-file-input" id="homework-file" type="file" accept="image/*" multiple />
 
           <div class="homework-preview" id="homework-preview" hidden>
-            <img class="homework-thumb" id="homework-thumb" alt="Selected homework photo" />
-            <div class="homework-preview-main">
-              <p class="homework-file-name" id="homework-file-name"></p>
-              <button class="focus-btn" id="btn-homework-send" type="button">Send for checking</button>
-            </div>
+            <div class="homework-pages" id="homework-pages"></div>
+            <p class="homework-file-name" id="homework-file-name"></p>
+            <button class="focus-btn homework-send-btn" id="btn-homework-send" type="button">Send for checking</button>
           </div>
 
           <p class="homework-status" id="homework-status" role="status"></p>
@@ -518,14 +587,15 @@
           <p class="homework-checks-head">Homework checks</p>
           <div id="homework-checks"></div>
         </div>
+      </section>
 
-        <div id="units-container">
-          <div class="score-line">Loading your subjects…</div>
-        </div>
-
-        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v13
-          <span class="stamp-hint">Tap Refresh (top right) to check for a new version — press &amp; hold it only if the app seems stuck.</span>
-        </p>
+      <!-- CARDS HOME -->
+      <section id="view-cards-home" class="view">
+        <p class="homework-head">Flashcards</p>
+        <p class="homework-intro" id="cards-due-line">Loading your flashcards…</p>
+        <button class="big-btn" id="btn-cards-review-all">Review all due flashcards<small id="cards-review-all-sub">A mixed session of every card that's due today</small></button>
+        <p class="homework-label">Pick a unit</p>
+        <div id="cards-unit-picker"></div>
       </section>
 
       <!-- UNIT HOME -->
@@ -635,6 +705,13 @@
       </section>
 
     </main>
+
+    <nav class="tab-bar" id="tab-bar" aria-label="Study sections">
+      <button class="tab-btn is-active" type="button" data-tab="home" id="tab-btn-home">Home</button>
+      <button class="tab-btn" type="button" data-tab="practice" id="tab-btn-practice">Practice</button>
+      <button class="tab-btn" type="button" data-tab="homework" id="tab-btn-homework">Homework<span class="tab-badge" id="tab-badge-homework" hidden></span></button>
+      <button class="tab-btn" type="button" data-tab="cards" id="tab-btn-cards">Cards</button>
+    </nav>
 
     <div class="app-toast" id="app-toast" role="status" aria-live="polite"></div>
 
@@ -1101,12 +1178,32 @@
       }
 
       /* ---------- Views ---------- */
-      var views = ["view-home", "view-unit", "view-cards", "view-cards-done", "view-quiz", "view-quiz-done"];
+      var views = ["view-home", "view-practice", "view-homework", "view-cards-home", "view-unit", "view-cards", "view-cards-done", "view-quiz", "view-quiz-done"];
+      var TAB_PANELS = { "view-home": "home", "view-practice": "practice", "view-homework": "homework", "view-cards-home": "cards" };
+      var TAB_VIEWS = { home: "view-home", practice: "view-practice", homework: "view-homework", cards: "view-cards-home" };
+      var currentPanel = "home";
       function show(id) {
         views.forEach(function (v) {
           document.getElementById(v).classList.toggle("active", v === id);
         });
+        var tab = TAB_PANELS[id] || null;
+        var bar = document.getElementById("tab-bar");
+        if (bar) bar.hidden = !tab;
+        if (tab) {
+          currentPanel = tab;
+          var btns = document.querySelectorAll("[data-tab]");
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].classList.toggle("is-active", btns[i].getAttribute("data-tab") === tab);
+          }
+          if (tab === "homework") markHomeworkSeen();
+        }
         window.scrollTo(0, 0);
+      }
+      function switchTab(tab) {
+        var panel = TAB_VIEWS[tab];
+        if (!panel) return;
+        if (tab === "home") { updateHomeBadges(); updateReviewAllSub(); }
+        show(panel);
       }
 
       /* ---------- Home: subjects & units ---------- */
@@ -1152,6 +1249,13 @@
           mRow.appendChild(mBadge);
           mRow.appendChild(mProg);
           main.appendChild(mRow);
+          var mBar = document.createElement("span");
+          mBar.className = "mastery-bar";
+          var mFill = document.createElement("span");
+          mFill.className = "mastery-bar-fill";
+          mFill.id = "mastery-bar-fill-" + u.id;
+          mBar.appendChild(mFill);
+          main.appendChild(mBar);
           btn.appendChild(main);
           var badge = document.createElement("span");
           badge.className = "due-badge soon";
@@ -1167,6 +1271,31 @@
         });
         updateHomeBadges();
         updateReviewAllSub();
+        renderCardsPicker();
+      }
+
+      /* Cards panel: one tappable row per unit; tapping starts that
+         unit's due-flashcard review through the usual session flow. */
+      function renderCardsPicker() {
+        var box = document.getElementById("cards-unit-picker");
+        if (!box) return;
+        box.innerHTML = "";
+        allUnits.forEach(function (u) {
+          var btn = document.createElement("button");
+          btn.className = "cards-picker-btn";
+          btn.type = "button";
+          var title = document.createElement("span");
+          title.className = "unit-title";
+          title.textContent = (u.subject ? u.subject + " · " : "") + (u.title || u.id);
+          btn.appendChild(title);
+          var due = document.createElement("span");
+          due.className = "due-badge soon";
+          due.id = "cards-picker-due-" + u.id;
+          due.textContent = "Study →";
+          btn.appendChild(due);
+          btn.addEventListener("click", function () { startRecommendedCards(u.id); });
+          box.appendChild(btn);
+        });
       }
 
       function updateMasteryBadges() {
@@ -1183,6 +1312,8 @@
           else txt = "Mastery: " + d.answers + " answers · " + shownDays + " of 2 days";
           if (d.answers > 0) txt += " · " + Math.round(d.accuracy * 100) + "% correct";
           prog.textContent = txt;
+          var mFill = document.getElementById("mastery-bar-fill-" + u.id);
+          if (mFill) mFill.style.width = (d.state === "mastered" ? 100 : Math.round(Math.min((d.answers || 0) / 8, 1) * 100)) + "%";
         });
         renderFocusNext();
       }
@@ -1211,8 +1342,11 @@
             badge.className = "due-badge";
             badge.textContent = due + (due === 1 ? " due today" : " due today");
           }
+          var pk = document.getElementById("cards-picker-due-" + u.id);
+          if (pk) { pk.className = badge.className; pk.textContent = badge.textContent; }
         });
         renderFocusNext();
+        updateTodayActivity();
       }
 
       function totalDueAcrossUnits() {
@@ -1230,6 +1364,24 @@
         if (total === null) el.textContent = "A mixed session of every card that's due today";
         else if (total === 0) el.textContent = "Nothing is due right now — nice work!";
         else el.textContent = total + (total === 1 ? " card" : " cards") + " due across all your subjects";
+        var cd = document.getElementById("cards-due-line");
+        if (cd) cd.textContent = total === null
+          ? "Your flashcards load with your subjects."
+          : total === 0
+            ? "No flashcards are due right now — nice work!"
+            : total + (total === 1 ? " flashcard is" : " flashcards are") + " due today.";
+        var cs = document.getElementById("cards-review-all-sub");
+        if (cs) cs.textContent = el.textContent;
+      }
+
+      function updateTodayActivity() {
+        var el = document.getElementById("today-activity");
+        if (!el) return;
+        var t = todayStr(new Date());
+        var entries = loadHistory().filter(function (e) { return e && e.date === t; });
+        if (!entries.length) { el.textContent = "Today: no answers yet — a quick session keeps the streak warm."; return; }
+        var right = entries.filter(function (e) { return e.correct; }).length;
+        el.textContent = "Today: " + entries.length + (entries.length === 1 ? " answer" : " answers") + " · " + right + " correct";
       }
 
       /* ---------- Focus next (home recommendations) ----------
@@ -1705,9 +1857,10 @@
          listed under the upload controls. */
       var HOMEWORK_SUBJECTS = ["Math", "Science", "Social Studies", "ELA", "French", "Not sure"];
       var homeworkSelectedSubject = "Not sure";
-      var homeworkSelectedFile = null;
+      var homeworkPages = [];   /* [{ file, url }] — pages of ONE assignment */
       var homeworkSending = false;
-      var homeworkPreviewUrl = null;
+      var homeworkFeedbackRows = [];
+      var HW_SEEN_KEY = "emma-homework-seen-at-v1";
 
       function homeworkSubjectValue(label) {
         return label === "Not sure" ? null : label;
@@ -1765,6 +1918,23 @@
         });
       }
 
+      function insertHomeworkAssignment(row) {
+        var p = sbFetch("/study_homework_assignments", {
+          method: "POST",
+          headers: { "Prefer": "return=representation" },
+          body: JSON.stringify(row)
+        });
+        if (!p || typeof p.then !== "function") return Promise.reject(new Error("homework assignment unavailable"));
+        return p.then(function (r) {
+          if (!r || !r.ok) throw new Error("homework assignment " + (r ? r.status : "no response"));
+          return r.json();
+        }).then(function (rows) {
+          var rowObj = (rows instanceof Array) ? rows[0] : rows;
+          if (!rowObj || !rowObj.id) throw new Error("homework assignment id missing");
+          return rowObj;
+        });
+      }
+
       function homeworkPushEndpoint() {
         if (!("serviceWorker" in navigator)) return Promise.resolve(null);
         return Promise.resolve()
@@ -1799,68 +1969,118 @@
       }
 
       function resetHomeworkPicker() {
-        homeworkSelectedFile = null;
-        if (homeworkPreviewUrl && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
-          URL.revokeObjectURL(homeworkPreviewUrl);
-        }
-        homeworkPreviewUrl = null;
+        homeworkPages.forEach(function (p) {
+          if (p.url && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+            try { URL.revokeObjectURL(p.url); } catch (e) {}
+          }
+        });
+        homeworkPages = [];
         var input = document.getElementById("homework-file");
         if (input) input.value = "";
-        var preview = document.getElementById("homework-preview");
-        if (preview) preview.hidden = true;
-        var thumb = document.getElementById("homework-thumb");
-        if (thumb) thumb.removeAttribute("src");
-        var name = document.getElementById("homework-file-name");
-        if (name) name.textContent = "";
+        renderHomeworkPages();
         var send = document.getElementById("btn-homework-send");
         if (send) send.disabled = false;
       }
 
-      function chooseHomeworkFile(file) {
-        if (!file) { resetHomeworkPicker(); return null; }
-        homeworkSelectedFile = file;
+      function renderHomeworkPages() {
+        var preview = document.getElementById("homework-preview");
+        var strip = document.getElementById("homework-pages");
+        var name = document.getElementById("homework-file-name");
+        if (strip) {
+          strip.innerHTML = "";
+          homeworkPages.forEach(function (p, i) {
+            var cell = document.createElement("div");
+            cell.className = "homework-page";
+            if (p.url) {
+              var img = document.createElement("img");
+              img.className = "homework-thumb";
+              img.src = p.url;
+              img.alt = "Homework page " + (i + 1);
+              cell.appendChild(img);
+            }
+            var label = document.createElement("span");
+            label.className = "homework-page-label";
+            label.textContent = "Page " + (i + 1);
+            cell.appendChild(label);
+            var rm = document.createElement("button");
+            rm.type = "button";
+            rm.className = "homework-page-remove";
+            rm.setAttribute("data-remove-page", String(i));
+            rm.textContent = "Remove";
+            cell.appendChild(rm);
+            strip.appendChild(cell);
+          });
+        }
+        if (name) name.textContent = homeworkPages.length
+          ? homeworkPages.length + (homeworkPages.length === 1 ? " page" : " pages") + " ready"
+          : "";
+        if (preview) preview.hidden = homeworkPages.length === 0;
+      }
+
+      function addHomeworkPage(file) {
+        if (!file) return null;
+        var url = null;
+        if (typeof URL !== "undefined" && typeof URL.createObjectURL === "function") {
+          try { url = URL.createObjectURL(file); } catch (e) { url = null; }
+        }
+        homeworkPages.push({ file: file, url: url });
         setHomeworkStatus("");
         setHomeworkError("");
-        if (homeworkPreviewUrl && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
-          URL.revokeObjectURL(homeworkPreviewUrl);
-          homeworkPreviewUrl = null;
-        }
-        var thumb = document.getElementById("homework-thumb");
-        if (thumb && typeof URL !== "undefined" && typeof URL.createObjectURL === "function") {
-          homeworkPreviewUrl = URL.createObjectURL(file);
-          thumb.src = homeworkPreviewUrl;
-        } else if (thumb) {
-          thumb.removeAttribute("src");
-        }
-        var name = document.getElementById("homework-file-name");
-        if (name) name.textContent = file.name || "Homework photo";
-        var preview = document.getElementById("homework-preview");
-        if (preview) preview.hidden = false;
+        renderHomeworkPages();
         return file;
       }
 
+      function chooseHomeworkFile(file) { return addHomeworkPage(file); }
+
+      function removeHomeworkPage(idx) {
+        var p = homeworkPages[idx];
+        if (!p) return;
+        if (p.url && typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+          try { URL.revokeObjectURL(p.url); } catch (e) {}
+        }
+        homeworkPages.splice(idx, 1);
+        renderHomeworkPages();
+      }
+
       function sendHomework() {
-        if (homeworkSending || !homeworkSelectedFile) return Promise.resolve(false);
+        if (homeworkSending || !homeworkPages.length) return Promise.resolve(false);
         homeworkSending = true;
-        var file = homeworkSelectedFile;
+        var pages = homeworkPages.slice();
+        var subject = homeworkSubjectValue(homeworkSelectedSubject);
         var send = document.getElementById("btn-homework-send");
         if (send) send.disabled = true;
         setHomeworkStatus("");
         setHomeworkError("");
-        var storagePath = homeworkStoragePath(file, new Date());
-        return uploadHomeworkPhoto(file, storagePath)
-          .then(function () { return homeworkPushEndpoint(); })
-          .then(function (endpoint) {
-            return insertHomeworkUpload({
-              study_id: STUDY_ID,
-              subject: homeworkSubjectValue(homeworkSelectedSubject),
-              storage_path: storagePath,
-              push_endpoint: endpoint || null
+        var base = Date.now();
+        var uploads = pages.map(function (p, i) {
+          var path = homeworkStoragePath(p.file, new Date(base + i));
+          return uploadHomeworkPhoto(p.file, path).then(function () { return path; });
+        });
+        return Promise.all(uploads)
+          .then(function (paths) {
+            return homeworkPushEndpoint().then(function (endpoint) {
+              return insertHomeworkAssignment({
+                study_id: STUDY_ID,
+                subject: subject,
+                push_endpoint: endpoint || null
+              }).then(function (assignment) {
+                var rows = paths.map(function (path) {
+                  return insertHomeworkUpload({
+                    study_id: STUDY_ID,
+                    subject: subject,
+                    storage_path: path,
+                    push_endpoint: endpoint || null,
+                    assignment_id: assignment.id
+                  });
+                });
+                return Promise.all(rows);
+              });
             });
           })
           .then(function () {
             setHomeworkStatus("Sent! Your homework check will show up here in a few minutes.");
             resetHomeworkPicker();
+            loadHomeworkChecks();
             return true;
           })
           .catch(function () {
@@ -1899,112 +2119,268 @@
         }
       }
 
-      function buildHomeworkCards(uploads, feedbackRows) {
-        if (!(uploads instanceof Array)) uploads = [];
-        if (!(feedbackRows instanceof Array)) feedbackRows = [];
-        var feedbackByUpload = {};
-        feedbackRows.forEach(function (row) {
-          if (!row || row.upload_id === null || typeof row.upload_id === "undefined") return;
-          var key = String(row.upload_id);
-          if (!feedbackByUpload[key]) feedbackByUpload[key] = row;
-        });
-        return uploads.slice(0, 10).map(function (upload) {
-          upload = upload || {};
-          var feedback = feedbackByUpload[String(upload.id)] || null;
-          var items = [];
-          if (feedback && feedback.items instanceof Array) {
-            items = feedback.items.map(function (item) {
-              item = item || {};
-              return {
-                problem: typeof item.problem === "string" && item.problem ? item.problem : "Problem",
-                verdict: typeof item.verdict === "string" ? item.verdict : "worth_a_look",
-                verdictLabel: homeworkVerdictLabel(item.verdict),
-                verdictClass: homeworkVerdictClass(item.verdict),
-                note: typeof item.note === "string" ? item.note : "",
-                rule: typeof item.rule === "string" ? item.rule : ""
-              };
-            });
-          }
-          var subject = typeof upload.subject === "string" && upload.subject ? upload.subject : "Not sure";
-          var timeLabel = homeworkTimeLabel(upload.created_at);
-          return {
-            id: upload.id,
-            subject: subject,
-            timeLabel: timeLabel,
-            heading: timeLabel ? subject + " · " + timeLabel : subject,
-            status: typeof upload.status === "string" ? upload.status : "",
-            waiting: !feedback && upload.status === "pending",
-            summary: feedback && typeof feedback.summary === "string" ? feedback.summary : "",
-            items: items
-          };
-        });
+      function normalizeHomeworkItems(feedback) {
+        var items = [];
+        if (feedback && feedback.items instanceof Array) {
+          items = feedback.items.map(function (item) {
+            item = item || {};
+            return {
+              problem: typeof item.problem === "string" && item.problem ? item.problem : "Problem",
+              verdict: typeof item.verdict === "string" ? item.verdict : "worth_a_look",
+              verdictLabel: homeworkVerdictLabel(item.verdict),
+              verdictClass: homeworkVerdictClass(item.verdict),
+              note: typeof item.note === "string" ? item.note : "",
+              rule: typeof item.rule === "string" ? item.rule : ""
+            };
+          });
+        }
+        return items;
       }
 
-      function renderHomeworkChecks(uploads, feedbackRows) {
-        var cards = buildHomeworkCards(uploads, feedbackRows);
-        var box = document.getElementById("homework-checks");
-        if (!box) return cards;
-        box.innerHTML = "";
-        cards.forEach(function (card) {
-          var el = document.createElement("div");
-          el.className = "homework-card";
-          var head = document.createElement("div");
-          head.className = "homework-card-head";
-          head.textContent = card.heading;
-          el.appendChild(head);
-          if (card.waiting) {
-            var waiting = document.createElement("p");
-            waiting.className = "homework-waiting";
-            waiting.textContent = "Waiting for its check…";
-            el.appendChild(waiting);
+      function homeworkCounts(items) {
+        var right = 0, worth = 0, retake = 0;
+        (items || []).forEach(function (item) {
+          if (item.verdict === "correct") right++;
+          else if (item.verdict === "needs_retake") retake++;
+          else worth++;
+        });
+        return { right: right, worth: worth, retake: retake };
+      }
+
+      function homeworkDayGroup(createdAt, now) {
+        var d = createdAt ? new Date(createdAt) : null;
+        if (!d || isNaN(d.getTime())) return "Earlier";
+        var ref = now ? new Date(now) : new Date();
+        var startToday = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()).getTime();
+        var t = d.getTime();
+        if (t >= startToday) return "Today";
+        if (t >= startToday - 86400000) return "Yesterday";
+        return "Earlier";
+      }
+
+      /* v14: checks are ASSIGNMENTS. Grouped uploads (assignment_id
+         set) collapse into one card per assignment; legacy uploads
+         (assignment_id null) are one-page assignments of their own. */
+      function buildAssignmentCards(assignments, uploads, feedbackRows) {
+        if (!(assignments instanceof Array)) assignments = [];
+        if (!(uploads instanceof Array)) uploads = [];
+        if (!(feedbackRows instanceof Array)) feedbackRows = [];
+        var feedbackByAssignment = {};
+        var feedbackByUpload = {};
+        feedbackRows.forEach(function (row) {
+          if (!row) return;
+          if (row.assignment_id !== null && typeof row.assignment_id !== "undefined") {
+            var ka = String(row.assignment_id);
+            if (!feedbackByAssignment[ka]) feedbackByAssignment[ka] = row;
           }
-          if (card.summary) {
-            var summary = document.createElement("p");
-            summary.className = "homework-summary";
-            summary.textContent = card.summary;
-            el.appendChild(summary);
+          if (row.upload_id !== null && typeof row.upload_id !== "undefined") {
+            var ku = String(row.upload_id);
+            if (!feedbackByUpload[ku]) feedbackByUpload[ku] = row;
           }
-          card.items.forEach(function (item) {
-            var itemEl = document.createElement("div");
-            itemEl.className = "homework-item";
-            var itemHead = document.createElement("div");
-            itemHead.className = "homework-item-head";
-            var problem = document.createElement("span");
-            problem.className = "homework-problem";
-            problem.textContent = item.problem;
-            var verdict = document.createElement("span");
-            verdict.className = "homework-verdict " + item.verdictClass;
-            verdict.textContent = item.verdictLabel;
-            itemHead.appendChild(problem);
-            itemHead.appendChild(verdict);
-            itemEl.appendChild(itemHead);
-            if (item.note) {
-              var note = document.createElement("p");
-              note.className = "homework-note";
-              note.textContent = item.note;
-              itemEl.appendChild(note);
-            }
-            if (item.rule) {
-              var rule = document.createElement("p");
-              rule.className = "homework-rule";
-              rule.textContent = item.rule;
-              itemEl.appendChild(rule);
-            }
-            el.appendChild(itemEl);
+        });
+        var pagesByAssignment = {};
+        uploads.forEach(function (u) {
+          if (!u || u.assignment_id === null || typeof u.assignment_id === "undefined") return;
+          var k = String(u.assignment_id);
+          (pagesByAssignment[k] = pagesByAssignment[k] || []).push(u);
+        });
+        Object.keys(pagesByAssignment).forEach(function (k) {
+          pagesByAssignment[k].sort(function (a, b) {
+            return String(a.created_at || "").localeCompare(String(b.created_at || ""));
           });
-          box.appendChild(el);
+        });
+        var cards = [];
+        assignments.slice(0, 10).forEach(function (a) {
+          a = a || {};
+          var pages = pagesByAssignment[String(a.id)] || [];
+          var feedback = feedbackByAssignment[String(a.id)] || null;
+          if (!feedback && pages.length) feedback = feedbackByUpload[String(pages[0].id)] || null;
+          cards.push(makeAssignmentCard(a.id, a.subject, pages.length, a.created_at, a.status, feedback));
+        });
+        uploads.filter(function (u) { return u && (u.assignment_id === null || typeof u.assignment_id === "undefined"); })
+          .slice(0, 10).forEach(function (u) {
+            var feedback = feedbackByUpload[String(u.id)] || null;
+            cards.push(makeAssignmentCard("legacy-" + u.id, u.subject, 1, u.created_at, u.status, feedback));
+          });
+        cards.sort(function (x, y) {
+          return String(y.created_at || "").localeCompare(String(x.created_at || ""));
         });
         return cards;
       }
 
+      function makeAssignmentCard(key, subject, pageCount, createdAt, status, feedback) {
+        var items = normalizeHomeworkItems(feedback);
+        var counts = homeworkCounts(items);
+        var subj = typeof subject === "string" && subject ? subject : "Homework";
+        var pages = typeof pageCount === "number" && pageCount > 0 ? pageCount : 1;
+        var line = subj + " · " + pages + (pages === 1 ? " page" : " pages");
+        if (feedback) {
+          line += " · " + counts.right + " right · " + counts.worth + " worth another look";
+          if (counts.retake > 0) line += " · " + counts.retake + " couldn't read";
+        }
+        return {
+          key: String(key),
+          subject: subj,
+          pages: pages,
+          created_at: createdAt || null,
+          status: typeof status === "string" ? status : "",
+          waiting: !feedback,
+          summary: feedback && typeof feedback.summary === "string" ? feedback.summary : "",
+          items: items,
+          counts: counts,
+          line: line
+        };
+      }
+
+      function buildHomeworkSections(cards, now) {
+        var groups = { Today: [], Yesterday: [], Earlier: [] };
+        (cards || []).forEach(function (card) {
+          groups[homeworkDayGroup(card.created_at, now)].push(card);
+        });
+        var sections = [];
+        if (groups.Today.length) sections.push({ label: "Today", cards: groups.Today });
+        if (groups.Yesterday.length) sections.push({ label: "Yesterday", cards: groups.Yesterday });
+        if (groups.Earlier.length) sections.push({ label: "Earlier", cards: groups.Earlier });
+        return sections;
+      }
+
+      function renderHomeworkCard(card) {
+        var el = document.createElement("div");
+        el.className = "homework-card";
+        el.setAttribute("data-assignment-key", card.key);
+        var head = document.createElement("div");
+        head.className = "homework-card-head" + (card.items.length ? " homework-row-head" : "");
+        head.textContent = card.line;
+        el.appendChild(head);
+        var detail = document.createElement("div");
+        detail.className = "homework-detail";
+        if (card.items.length) detail.hidden = true;
+        if (card.waiting) {
+          var waiting = document.createElement("p");
+          waiting.className = "homework-waiting";
+          waiting.textContent = "Waiting for its check…";
+          detail.appendChild(waiting);
+        }
+        if (card.summary) {
+          var summary = document.createElement("p");
+          summary.className = "homework-summary";
+          summary.textContent = card.summary;
+          detail.appendChild(summary);
+        }
+        card.items.forEach(function (item) {
+          var itemEl = document.createElement("div");
+          itemEl.className = "homework-item";
+          var itemHead = document.createElement("div");
+          itemHead.className = "homework-item-head";
+          var problem = document.createElement("span");
+          problem.className = "homework-problem";
+          problem.textContent = item.problem;
+          var verdict = document.createElement("span");
+          verdict.className = "homework-verdict " + item.verdictClass;
+          verdict.textContent = item.verdictLabel;
+          itemHead.appendChild(problem);
+          itemHead.appendChild(verdict);
+          itemEl.appendChild(itemHead);
+          if (item.note) {
+            var note = document.createElement("p");
+            note.className = "homework-note";
+            note.textContent = item.note;
+            itemEl.appendChild(note);
+          }
+          if (item.rule) {
+            var rule = document.createElement("p");
+            rule.className = "homework-rule";
+            rule.textContent = item.rule;
+            itemEl.appendChild(rule);
+          }
+          detail.appendChild(itemEl);
+        });
+        el.appendChild(detail);
+        if (card.items.length) {
+          head.addEventListener("click", function () { detail.hidden = !detail.hidden; });
+        }
+        return el;
+      }
+
+      function renderHomeworkChecks(assignments, uploads, feedbackRows) {
+        var cards = buildAssignmentCards(assignments, uploads, feedbackRows);
+        var box = document.getElementById("homework-checks");
+        if (!box) return cards;
+        box.innerHTML = "";
+        buildHomeworkSections(cards, new Date()).forEach(function (section) {
+          if (section.label === "Earlier") {
+            var toggle = document.createElement("button");
+            toggle.type = "button";
+            toggle.className = "homework-earlier-toggle";
+            toggle.id = "homework-earlier-toggle";
+            toggle.textContent = "Earlier ▸";
+            var wrap = document.createElement("div");
+            wrap.className = "homework-earlier";
+            wrap.id = "homework-earlier";
+            wrap.hidden = true;
+            section.cards.forEach(function (card) { wrap.appendChild(renderHomeworkCard(card)); });
+            toggle.addEventListener("click", function () {
+              wrap.hidden = !wrap.hidden;
+              toggle.textContent = wrap.hidden ? "Earlier ▸" : "Earlier ▾";
+            });
+            box.appendChild(toggle);
+            box.appendChild(wrap);
+            return;
+          }
+          var head = document.createElement("p");
+          head.className = "homework-day-head";
+          head.textContent = section.label;
+          box.appendChild(head);
+          section.cards.forEach(function (card) { box.appendChild(renderHomeworkCard(card)); });
+        });
+        return cards;
+      }
+
+      function hwSeenAt() {
+        try {
+          var v = window.localStorage.getItem(HW_SEEN_KEY);
+          if (!v) {
+            var nowIso = new Date().toISOString();
+            window.localStorage.setItem(HW_SEEN_KEY, nowIso);
+            return nowIso;
+          }
+          return v;
+        } catch (e) { return null; }
+      }
+
+      function markHomeworkSeen() {
+        try { window.localStorage.setItem(HW_SEEN_KEY, new Date().toISOString()); } catch (e) {}
+        updateHomeworkBadge();
+      }
+
+      function updateHomeworkBadge() {
+        var badge = document.getElementById("tab-badge-homework");
+        if (!badge) return 0;
+        var seen = hwSeenAt();
+        var n = 0;
+        if (seen && currentPanel !== "homework") {
+          homeworkFeedbackRows.forEach(function (r) {
+            if (r && r.created_at && String(r.created_at) > seen) n++;
+          });
+        }
+        badge.hidden = n === 0;
+        badge.textContent = n ? String(n) : "";
+        return n;
+      }
+
       function loadHomeworkChecks() {
+        var assignmentsP = sbGetJSON("/study_homework_assignments?study_id=eq." + STUDY_ID +
+          "&select=id,study_id,subject,status,push_endpoint,created_at,processed_at&order=created_at.desc&limit=10");
         var uploadsP = sbGetJSON("/study_homework_uploads?study_id=eq." + STUDY_ID +
-          "&select=id,study_id,subject,storage_path,status,push_endpoint,created_at,processed_at&order=created_at.desc&limit=10");
+          "&select=id,study_id,subject,storage_path,status,push_endpoint,created_at,processed_at,assignment_id&order=created_at.desc&limit=10");
         var feedbackP = sbGetJSON("/study_homework_feedback?study_id=eq." + STUDY_ID +
-          "&select=id,upload_id,study_id,summary,items,created_at&order=created_at.desc");
-        if (!uploadsP || !feedbackP) return Promise.resolve([]);
-        return Promise.all([uploadsP, feedbackP]).then(function (res) {
-          return renderHomeworkChecks(res[0] || [], res[1] || []);
+          "&select=id,upload_id,assignment_id,study_id,summary,items,created_at&order=created_at.desc");
+        if (!assignmentsP || !uploadsP || !feedbackP) return Promise.resolve([]);
+        return Promise.all([assignmentsP, uploadsP, feedbackP]).then(function (res) {
+          homeworkFeedbackRows = res[2] || [];
+          var cards = renderHomeworkChecks(res[0] || [], res[1] || [], res[2] || []);
+          updateHomeworkBadge();
+          return cards;
         }).catch(function () { return []; });
       }
 
@@ -3063,7 +3439,7 @@
          The build stamp printed at the bottom of the home view; bump
          it (with the worker's CACHE_NAME) whenever the shell changes
          so "am I on the latest?" is answerable at a glance. */
-      var BUILD_STAMP = "Nov 9, 2026 · shell v13";
+      var BUILD_STAMP = "Nov 9, 2026 · shell v14";
 
       var appToastTimer = null;
       function showAppToast(text, holdMs) {
@@ -3699,8 +4075,21 @@
         if (chip) setHomeworkSubject(chip.getAttribute("data-homework-subject"));
       });
       document.getElementById("homework-file").addEventListener("change", function (e) {
-        chooseHomeworkFile(e.target.files && e.target.files.length ? e.target.files[0] : null);
+        var files = e.target.files;
+        if (files) { for (var i = 0; i < files.length; i++) addHomeworkPage(files[i]); }
+        e.target.value = "";
       });
+      document.getElementById("homework-pages").addEventListener("click", function (e) {
+        var btn = e.target && typeof e.target.closest === "function"
+          ? e.target.closest("[data-remove-page]") : null;
+        if (btn) removeHomeworkPage(parseInt(btn.getAttribute("data-remove-page"), 10));
+      });
+      document.getElementById("tab-bar").addEventListener("click", function (e) {
+        var btn = e.target && typeof e.target.closest === "function"
+          ? e.target.closest("[data-tab]") : null;
+        if (btn) switchTab(btn.getAttribute("data-tab"));
+      });
+      document.getElementById("btn-cards-review-all").addEventListener("click", startReviewAll);
       document.getElementById("btn-homework-send").addEventListener("click", sendHomework);
       document.getElementById("btn-reminders").addEventListener("click", onRemindersTap);
       (function () {
@@ -3745,7 +4134,7 @@
       document.getElementById("btn-back-home").addEventListener("click", function () {
         updateHomeBadges();
         updateReviewAllSub();
-        show("view-home");
+        show("view-practice");
       });
       document.getElementById("btn-cards-back").addEventListener("click", goBackFromStudy);
       document.getElementById("btn-done-back").addEventListener("click", goBackFromStudy);
@@ -3771,6 +4160,7 @@
 
       if (typeof totalsByUnit[CHEM_ID] !== "number") totalsByUnit[CHEM_ID] = EMBEDDED_CARDS.length;
       refreshRemindersState();
+      hwSeenAt();
       renderUnits();
       unitsReadyPromise = loadUnits();
     </script>
