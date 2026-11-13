@@ -263,6 +263,7 @@
       /* v16: correction loop — per-problem threads */
       .homework-item-head.is-tappable { cursor: pointer; }
       .homework-corrected { color: var(--good); font-weight: 900; font-size: 0.85rem; white-space: nowrap; }
+      .homework-parent-mark { color: var(--good); font-weight: 800; font-size: 0.9rem; margin: 6px 0 2px; }
       .homework-item-detail { margin-top: 2px; }
       .homework-thread { margin-top: 4px; }
       .homework-attempt { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; margin: 8px 0; }
@@ -678,7 +679,7 @@
 
         <button class="big-btn secondary" id="btn-review-all">Review all flashcards<small id="review-all-sub">A mixed session of every card that's due today</small></button>
 
-        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v17
+        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v18
           <span class="stamp-hint">Open the menu (top right) and tap Refresh app to check for a new version — press &amp; hold it only if the app seems stuck.</span>
         </p>
       </section>
@@ -857,7 +858,7 @@
       </div>
       <button class="sheet-row" id="btn-refresh" type="button" aria-label="Refresh the app. Tap to check for a new version. Press and hold to clear the cached app and reload fresh.">
         <span class="sheet-row-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="refresh-arrow" d="M20 12a8 8 0 1 1-2.34-5.66M20 3v4h-4" /></svg></span>
-        <span class="sheet-row-text"><span class="sheet-row-title">Refresh app</span><span class="sheet-row-sub">shell v17</span></span>
+        <span class="sheet-row-text"><span class="sheet-row-title">Refresh app</span><span class="sheet-row-sub">shell v18</span></span>
       </button>
       <button class="sheet-row" id="btn-reminders" type="button" aria-label="Study reminders: off. Tap to turn on study reminders on this phone.">
         <span class="sheet-row-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="bulb-glass" d="M12 2.8a6.2 6.2 0 0 1 3.6 11.2c-.6.5-1 1-1 1.8v.7H9.4v-.7c0-.8-.4-1.3-1-1.8A6.2 6.2 0 0 1 12 2.8z" /><path class="bulb-base" d="M9.6 19h4.8M10.2 21.2h3.6" /><path class="bulb-rays" d="M5 3.6 3.5 2.1M19 3.6l1.5-1.5M3.7 9.2H1.7M22.3 9.2h-2" /><path class="bulb-slash" d="M4.5 4.5l15 15" /></svg></span>
@@ -2141,6 +2142,11 @@
          renders exactly as v15. Open card/item state survives the
          list re-renders (visibility refresh, post-send refresh). */
       var homeworkThreadIndex = {};
+      /* v18: parent marks (study_homework_parent_marks) keyed the
+         same way; rebuilt on every checks load. When the marks
+         fetch fails it stays empty and the checks list renders
+         exactly as v17. */
+      var homeworkParentMarks = {};
       var homeworkOpenCards = {};
       var homeworkOpenItems = {};
       var correctionSending = false;
@@ -2248,6 +2254,28 @@
           if (!result) entry.pending = true;
         });
         return index;
+      }
+
+      /* v18: parent marks — from the parent view, a parent can
+         mark a flagged problem fixed (it was fixed on paper). The
+         mark lives in its own table, separate from the checker's
+         feedback; here it only changes how the problem renders:
+         fixed, with no correction button offered. */
+      function buildParentMarksIndex(marks) {
+        var index = {};
+        (marks instanceof Array ? marks : []).forEach(function (m) {
+          if (!m || m.feedback_id === null || typeof m.feedback_id === "undefined" || !m.problem_label) return;
+          if (m.marked_fixed) index[homeworkThreadKey(m.feedback_id, m.problem_label)] = m;
+        });
+        return index;
+      }
+
+      function parentMarkDateLabel(ts) {
+        var d = ts ? new Date(ts) : null;
+        if (!d || isNaN(d.getTime())) return "";
+        try {
+          return d.toLocaleDateString([], { month: "short", day: "numeric" });
+        } catch (e) { return ""; }
       }
 
       function correctionVerdictLabel(verdict) {
@@ -2699,6 +2727,9 @@
           itemEl.className = "homework-item";
           var thread = card.feedbackId !== null && typeof card.feedbackId !== "undefined"
             ? homeworkThreadIndex[homeworkThreadKey(card.feedbackId, item.problem)] : null;
+          var parentMark = card.feedbackId !== null && typeof card.feedbackId !== "undefined"
+            ? homeworkParentMarks[homeworkThreadKey(card.feedbackId, item.problem)] : null;
+          var itemFixed = !!((thread && thread.fixed) || parentMark);
           var itemKey = card.key + "|" + item.problem;
           var itemHead = document.createElement("div");
           itemHead.className = "homework-item-head is-tappable";
@@ -2706,15 +2737,20 @@
           problem.className = "homework-problem";
           problem.textContent = item.problem;
           itemHead.appendChild(problem);
-          if (thread && thread.fixed) {
+          if (itemFixed) {
             var fixedTag = document.createElement("span");
             fixedTag.className = "homework-corrected";
             fixedTag.textContent = "· Corrected ✓";
             itemHead.appendChild(fixedTag);
           }
           var verdict = document.createElement("span");
-          verdict.className = "homework-verdict " + item.verdictClass;
-          verdict.textContent = item.verdictLabel;
+          if (parentMark) {
+            verdict.className = "homework-verdict correct";
+            verdict.textContent = "Fixed ✓";
+          } else {
+            verdict.className = "homework-verdict " + item.verdictClass;
+            verdict.textContent = item.verdictLabel;
+          }
           itemHead.appendChild(verdict);
           itemEl.appendChild(itemHead);
           var itemDetail = document.createElement("div");
@@ -2732,6 +2768,13 @@
             rule.textContent = item.rule;
             itemDetail.appendChild(rule);
           }
+          if (parentMark) {
+            var markLine = document.createElement("p");
+            markLine.className = "homework-parent-mark";
+            var markWhen = parentMarkDateLabel(parentMark.updated_at || parentMark.created_at);
+            markLine.textContent = "Marked fixed by a parent" + (markWhen ? " · " + markWhen : "");
+            itemDetail.appendChild(markLine);
+          }
           if (thread && thread.attempts.length) {
             var threadEl = document.createElement("div");
             threadEl.className = "homework-thread";
@@ -2742,7 +2785,7 @@
           }
           var canCorrect = card.feedbackId !== null && typeof card.feedbackId !== "undefined" &&
             (item.verdict === "worth_a_look" || item.verdict === "needs_retake") &&
-            !(thread && thread.fixed) && !(thread && thread.pending);
+            !(thread && thread.fixed) && !(thread && thread.pending) && !parentMark;
           if (canCorrect) {
             var guidance = document.createElement("p");
             guidance.className = "homework-guidance";
@@ -2860,9 +2903,15 @@
           "&select=id,correction_id,study_id,verdict,note,created_at&order=created_at.asc");
         var correctionsSafe = correctionsP ? correctionsP.catch(function () { return []; }) : Promise.resolve([]);
         var correctionResultsSafe = correctionResultsP ? correctionResultsP.catch(function () { return []; }) : Promise.resolve([]);
-        return Promise.all([assignmentsP, uploadsP, feedbackP, correctionsSafe, correctionResultsSafe]).then(function (res) {
+        /* v18: parent marks ride along with the same isolation —
+           a failed marks fetch renders the checks exactly as v17. */
+        var parentMarksP = sbGetJSON("/study_homework_parent_marks?study_id=eq." + STUDY_ID +
+          "&select=id,study_id,feedback_id,problem_label,marked_fixed,created_at,updated_at&order=created_at.asc");
+        var parentMarksSafe = parentMarksP ? parentMarksP.catch(function () { return []; }) : Promise.resolve([]);
+        return Promise.all([assignmentsP, uploadsP, feedbackP, correctionsSafe, correctionResultsSafe, parentMarksSafe]).then(function (res) {
           homeworkFeedbackRows = res[2] || [];
           homeworkThreadIndex = buildHomeworkThreadIndex(res[3] || [], res[4] || []);
+          homeworkParentMarks = buildParentMarksIndex(res[5] || []);
           var cards = renderHomeworkChecks(res[0] || [], res[1] || [], res[2] || []);
           updateHomeworkBadge();
           return cards;
@@ -3926,7 +3975,7 @@
          The build stamp printed at the bottom of the home view; bump
          it (with the worker's CACHE_NAME) whenever the shell changes
          so "am I on the latest?" is answerable at a glance. */
-      var BUILD_STAMP = "Nov 9, 2026 · shell v17";
+      var BUILD_STAMP = "Nov 9, 2026 · shell v18";
 
       var appToastTimer = null;
       function showAppToast(text, holdMs) {

@@ -321,6 +321,16 @@
         color: var(--ink); font-family: inherit; font-size: 0.95rem; font-weight: 900;
         border-radius: var(--radius); padding: 12px 16px; cursor: pointer; margin-bottom: 10px; min-height: 48px;
       }
+      .hw-parent-note { font-size: 0.9rem; font-weight: 600; color: var(--ink-soft); line-height: 1.5; margin: 0 0 12px; }
+      .hw-mark-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 7px 0 3px; }
+      .hw-marked-text { font-size: 0.88rem; font-weight: 800; color: var(--good); }
+      .hw-mark-btn {
+        font-family: inherit; font-size: 0.85rem; font-weight: 800; cursor: pointer;
+        border-radius: 999px; padding: 7px 14px; min-height: 36px;
+        border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent-dark);
+      }
+      .hw-mark-btn.undo { border-color: var(--line); background: var(--surface-2); color: var(--ink-soft); }
+      .hw-mark-btn[disabled] { opacity: 0.55; cursor: default; }
 
       /* Activity */
       .strip { display: flex; align-items: flex-end; gap: 4px; height: 92px; margin-top: 6px; }
@@ -755,12 +765,13 @@
       function renderAttention() {
         var el = document.getElementById("ov-attention");
         if (!el || renderedOnce.attention) return;
-        var keys = ["units", "mastery", "topics", "quizzes", "quizItems", "weak", "answers", "hwF", "hwC", "hwCR"];
+        var keys = ["units", "mastery", "topics", "quizzes", "quizItems", "weak", "answers", "hwF", "hwC", "hwCR", "hwM"];
         if (!needsSettled(keys)) { el.innerHTML = loadingCard(); return; }
         renderedOnce.attention = true;
         var units = got("units"), mastery = got("mastery"), topics = got("topics"),
             quizzes = got("quizzes"), quizItems = got("quizItems"), weak = got("weak"),
-            answers = got("answers"), hwF = got("hwF"), hwC = got("hwC"), hwCR = got("hwCR");
+            answers = got("answers"), hwF = got("hwF"), hwC = got("hwC"), hwCR = got("hwCR"),
+            hwMarks = got("hwM");
         var unitById = {};
         (units || []).forEach(function (u) { unitById[u.id] = u; });
         var flags = [];
@@ -799,15 +810,19 @@
             });
           }
         }
-        /* (d) Latest homework: items still not fixed by a correction. */
+        /* (d) Latest homework: items still not fixed — by a
+           correction or by a parent mark. */
         if (hwF && hwF.length) {
           var threadIndex = buildThreadIndex(hwC || [], hwCR || []);
+          var marksIndex = buildMarksIndex(hwMarks || []);
           var latest = hwF[0];
           var items = normalizeItems(latest);
           var unfixed = items.filter(function (it) {
             if (it.verdict !== "worth_a_look" && it.verdict !== "needs_retake") return false;
             var th = threadIndex[threadKey(latest.id, it.problem)];
-            return !(th && th.fixed);
+            if (th && th.fixed) return false;
+            if (parentMarkFor(marksIndex, latest.id, it.problem)) return false;
+            return true;
           });
           unfixed.slice(0, 2).forEach(function (it) {
             flags.push({
@@ -930,14 +945,73 @@
         }
         return items;
       }
-      function itemCounts(items) {
+      function itemCounts(items, fixedFn) {
         var right = 0, worth = 0, retake = 0;
         (items || []).forEach(function (item) {
-          if (item.verdict === "correct") right++;
+          if (item.verdict === "correct" || (fixedFn && fixedFn(item))) right++;
           else if (item.verdict === "needs_retake") retake++;
           else worth++;
         });
         return { right: right, worth: worth, retake: retake };
+      }
+      /* ----- parent marks -----
+         A parent can mark a flagged problem fixed (it was fixed on
+         paper). The mark lives in its own table,
+         study_homework_parent_marks — the checker's feedback row is
+         never touched — and it is reversible (marked_fixed=false).
+         A problem counts as fixed when a correction result says
+         fixed OR a live parent mark exists for it. marksIndex is
+         null when the marks fetch failed: then nothing about the
+         rendering changes (no buttons, raw verdicts and counts). */
+      function buildMarksIndex(marks) {
+        var index = {};
+        (marks || []).forEach(function (m) {
+          if (!m || m.feedback_id === null || typeof m.feedback_id === "undefined" || !m.problem_label) return;
+          index[threadKey(m.feedback_id, m.problem_label)] = m;
+        });
+        return index;
+      }
+      function parentMarkFor(marksIndex, feedbackId, problem) {
+        if (!marksIndex || feedbackId === null || typeof feedbackId === "undefined") return null;
+        var m = marksIndex[threadKey(feedbackId, problem)];
+        return m && m.marked_fixed ? m : null;
+      }
+      function formatMonDay(ts) {
+        var d = ts ? new Date(ts) : null;
+        if (!d || isNaN(d.getTime())) return "";
+        try {
+          return d.toLocaleDateString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" });
+        } catch (e) { return ""; }
+      }
+      function saveParentMark(feedbackId, problem, fixed) {
+        var body = {
+          study_id: SID, feedback_id: feedbackId, problem_label: problem,
+          marked_fixed: fixed, updated_at: new Date().toISOString()
+        };
+        return fetch(BASE + "/study_homework_parent_marks?on_conflict=feedback_id,problem_label", {
+          method: "POST",
+          headers: {
+            apikey: KEY, Authorization: "Bearer " + KEY,
+            "Content-Profile": "study", "Content-Type": "application/json",
+            Prefer: "resolution=merge-duplicates, return=representation"
+          },
+          body: JSON.stringify(body)
+        }).then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        }).then(function (rows) {
+          var row = (rows instanceof Array ? rows[0] : rows) || body;
+          var cur = got("hwM") || [];
+          var next = cur.filter(function (m) {
+            return !(m && String(m.feedback_id) === String(row.feedback_id) && m.problem_label === row.problem_label);
+          });
+          next.push(row);
+          SRC.hwM = { status: "ok", rows: next };
+          renderedOnce.homework = false;
+          renderedOnce.attention = false;
+          renderSections();
+          return true;
+        });
       }
       function threadKey(feedbackId, problem) {
         return String(feedbackId) + "|" + String(problem);
@@ -1280,7 +1354,7 @@
 
       /* ----- Homework tab ----- */
       var openHw = {};
-      function buildHwCards(assignments, uploads, feedbackRows) {
+      function buildHwCards(assignments, uploads, feedbackRows, threadIndex, marksIndex) {
         if (!(assignments instanceof Array)) assignments = [];
         if (!(uploads instanceof Array)) uploads = [];
         if (!(feedbackRows instanceof Array)) feedbackRows = [];
@@ -1313,18 +1387,27 @@
           var pages = pagesByAssignment[String(a.id)] || [];
           var feedback = feedbackByAssignment[String(a.id)] || null;
           if (!feedback && pages.length) feedback = feedbackByUpload[String(pages[0].id)] || null;
-          cards.push(makeHwCard(a.id, a.subject, pages.length, a.created_at, a.status, feedback));
+          cards.push(makeHwCard(a.id, a.subject, pages.length, a.created_at, a.status, feedback, threadIndex, marksIndex));
         });
         uploads.filter(function (u) { return u && (u.assignment_id === null || typeof u.assignment_id === "undefined"); })
           .slice(0, 10).forEach(function (u) {
-            cards.push(makeHwCard("legacy-" + u.id, u.subject, 1, u.created_at, u.status, feedbackByUpload[String(u.id)] || null));
+            cards.push(makeHwCard("legacy-" + u.id, u.subject, 1, u.created_at, u.status, feedbackByUpload[String(u.id)] || null, threadIndex, marksIndex));
           });
         cards.sort(function (x, y) { return String(y.created_at || "").localeCompare(String(x.created_at || "")); });
         return cards;
       }
-      function makeHwCard(key, subject, pageCount, createdAt, status, feedback) {
+      function makeHwCard(key, subject, pageCount, createdAt, status, feedback, threadIndex, marksIndex) {
         var items = normalizeItems(feedback);
-        var counts = itemCounts(items);
+        var feedbackId = feedback && feedback.id !== null && typeof feedback.id !== "undefined" ? feedback.id : null;
+        /* Counts use the effective verdict — a problem fixed by a
+           correction or by a parent mark counts as right — but only
+           when the marks table loaded; if it failed, counts stay
+           exactly as they were before marks existed. */
+        var counts = itemCounts(items, marksIndex ? function (item) {
+          var th = threadIndex ? threadIndex[threadKey(feedbackId, item.problem)] : null;
+          if (th && th.fixed) return true;
+          return !!parentMarkFor(marksIndex, feedbackId, item.problem);
+        } : null);
         var subj = typeof subject === "string" && subject ? subject : "Homework";
         var pages = typeof pageCount === "number" && pageCount > 0 ? pageCount : 1;
         var line = subj + " · " + pages + (pages === 1 ? " page" : " pages");
@@ -1336,7 +1419,7 @@
         }
         return {
           key: String(key),
-          feedbackId: feedback && feedback.id !== null && typeof feedback.id !== "undefined" ? feedback.id : null,
+          feedbackId: feedbackId,
           subject: subj, pages: pages, created_at: createdAt || null,
           status: typeof status === "string" ? status : "",
           waiting: !feedback,
@@ -1352,16 +1435,33 @@
         if (k === addDaysKey(today, -1)) return "Yesterday";
         return "Earlier";
       }
+      var hwRenderedCards = [];
+      function applyParentMark(btn, fixed) {
+        var card = null;
+        hwRenderedCards.forEach(function (c) { if (c.key === btn.getAttribute("data-card-key")) card = c; });
+        if (!card || card.feedbackId === null) return;
+        var item = card.items[Number(btn.getAttribute("data-item-idx"))];
+        if (!item) return;
+        btn.disabled = true;
+        saveParentMark(card.feedbackId, item.problem, fixed).then(function () {}, function () {
+          btn.disabled = false;
+        });
+      }
       function renderHomework() {
         var el = document.getElementById("hw-list");
         if (!el || renderedOnce.homework) return;
-        var keys = ["hwA", "hwU", "hwF", "hwC", "hwCR"];
+        var keys = ["hwA", "hwU", "hwF", "hwC", "hwCR", "hwM"];
         if (!needsSettled(keys)) { el.innerHTML = loadingCard(); return; }
         renderedOnce.homework = true;
         var assignments = got("hwA"), uploads = got("hwU"), feedback = got("hwF");
         if (!assignments || !uploads || !feedback) { el.innerHTML = unavailableCard("Homework checks"); return; }
         var threadIndex = buildThreadIndex(got("hwC") || [], got("hwCR") || []);
-        var cards = buildHwCards(assignments, uploads, feedback);
+        /* marksIndex is null when the marks fetch failed — then the
+           tab renders exactly as it did before marks existed. */
+        var marksRows = got("hwM");
+        var marksIndex = marksRows ? buildMarksIndex(marksRows) : null;
+        var cards = buildHwCards(assignments, uploads, feedback, threadIndex, marksIndex);
+        hwRenderedCards = cards;
         if (!cards.length) {
           el.innerHTML = '<div class="card"><p class="quiet">No homework checks yet — they will appear here once Emma sends a photo of her homework.</p></div>';
           return;
@@ -1370,17 +1470,20 @@
         cards.forEach(function (c) { groups[hwDayGroup(c.created_at)].push(c); });
         var today = nyKey(new Date());
         var html = "";
+        if (marksIndex) {
+          html += '<p class="hw-parent-note">Fixed something on paper? Mark it here — the original check stays on record underneath.</p>';
+        }
         [["Today", today], ["Yesterday", addDaysKey(today, -1)], ["Earlier", null]].forEach(function (pair) {
           var label = pair[0], list = groups[label];
           if (!list.length) return;
           if (label === "Earlier") {
             html += '<button class="hw-earlier-toggle" type="button" id="hw-earlier-toggle" aria-expanded="false">Earlier ▸</button>' +
-              '<div id="hw-earlier" hidden>' + list.map(function (c) { return hwCardHtml(c, threadIndex); }).join("") + "</div>";
+              '<div id="hw-earlier" hidden>' + list.map(function (c) { return hwCardHtml(c, threadIndex, marksIndex); }).join("") + "</div>";
             return;
           }
           html += '<div class="hw-day-head"><span class="hw-day-name">' + label + '</span>' +
             '<span class="hw-day-date">' + esc(formatDayFull(pair[1])) + "</span></div>" +
-            list.map(function (c) { return hwCardHtml(c, threadIndex); }).join("");
+            list.map(function (c) { return hwCardHtml(c, threadIndex, marksIndex); }).join("");
         });
         el.innerHTML = html;
         el.querySelectorAll("[data-hw-toggle]").forEach(function (btn) {
@@ -1395,6 +1498,12 @@
             if (nowOpen) openHw[key] = true; else delete openHw[key];
           });
         });
+        el.querySelectorAll("[data-mark-fixed]").forEach(function (btn) {
+          btn.addEventListener("click", function () { applyParentMark(btn, true); });
+        });
+        el.querySelectorAll("[data-mark-undo]").forEach(function (btn) {
+          btn.addEventListener("click", function () { applyParentMark(btn, false); });
+        });
         var toggle = document.getElementById("hw-earlier-toggle");
         if (toggle) {
           toggle.addEventListener("click", function () {
@@ -1406,21 +1515,37 @@
           });
         }
       }
-      function hwCardHtml(card, threadIndex) {
+      function hwCardHtml(card, threadIndex, marksIndex) {
         var open = !!openHw[card.key];
         var detail = "";
         if (card.waiting) {
           detail += '<p class="hw-waiting" style="display:block;">Waiting for its check…</p>';
         }
         if (card.summary) detail += '<p class="hw-summary">' + esc(card.summary) + "</p>";
-        card.items.forEach(function (item) {
+        card.items.forEach(function (item, itemIdx) {
           var thread = card.feedbackId !== null ? threadIndex[threadKey(card.feedbackId, item.problem)] : null;
+          var mark = parentMarkFor(marksIndex, card.feedbackId, item.problem);
+          var corrFixed = !!(thread && thread.fixed);
+          var isFixed = corrFixed || !!mark;
           detail += '<div class="hw-item"><div class="hw-item-head">' +
             '<span class="hw-problem">' + esc(item.problem) + "</span>" +
-            (thread && thread.fixed ? '<span class="hw-corrected">· Corrected ✓</span>' : "") +
-            '<span class="verdict ' + verdictClass(item.verdict) + '">' + esc(verdictLabel(item.verdict)) + "</span></div>";
+            (isFixed ? '<span class="hw-corrected">· Corrected ✓</span>' : "") +
+            (mark && !corrFixed
+              ? '<span class="verdict correct">Fixed ✓</span>'
+              : '<span class="verdict ' + verdictClass(item.verdict) + '">' + esc(verdictLabel(item.verdict)) + "</span>") + "</div>";
           if (item.note) detail += '<p class="hw-note">' + esc(item.note) + "</p>";
           if (item.rule) detail += '<p class="hw-rule">' + esc(item.rule) + "</p>";
+          if (mark) {
+            var when = formatMonDay(mark.updated_at || mark.created_at);
+            detail += '<div class="hw-mark-line"><span class="hw-marked-text">Marked fixed by a parent' +
+              (when ? " · " + esc(when) : "") + "</span>" +
+              '<button class="hw-mark-btn undo" type="button" data-mark-undo data-card-key="' + esc(card.key) +
+              '" data-item-idx="' + itemIdx + '">Undo</button></div>';
+          } else if (marksIndex && card.feedbackId !== null && !corrFixed &&
+              (item.verdict === "worth_a_look" || item.verdict === "needs_retake")) {
+            detail += '<div class="hw-mark-line"><button class="hw-mark-btn" type="button" data-mark-fixed data-card-key="' +
+              esc(card.key) + '" data-item-idx="' + itemIdx + '">Mark fixed</button></div>';
+          }
           if (thread && thread.attempts.length) {
             thread.attempts.forEach(function (attempt) {
               detail += '<div class="hw-attempt"><div class="hw-attempt-head">' +
@@ -1589,6 +1714,7 @@
       load("hwF", "study_homework_feedback?select=id,upload_id,assignment_id,study_id,summary,items,created_at&study_id=eq." + SID + "&order=created_at.desc");
       load("hwC", "study_homework_corrections?select=id,study_id,feedback_id,problem_label,status,created_at,processed_at&study_id=eq." + SID + "&order=created_at.asc");
       load("hwCR", "study_homework_correction_results?select=id,correction_id,study_id,verdict,note,created_at&study_id=eq." + SID + "&order=created_at.asc");
+      load("hwM", "study_homework_parent_marks?select=id,study_id,feedback_id,problem_label,marked_fixed,created_at,updated_at&study_id=eq." + SID + "&order=created_at.asc");
       load("assess", "study_assessments?select=id,subject,kind,title,topic,due_date&study_id=eq." + SID + "&order=due_date.asc,subject.asc");
       renderSections();
     </script>
