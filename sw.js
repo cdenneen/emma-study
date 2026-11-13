@@ -21,7 +21,7 @@
       Static assets stay cache-first; offline study still works
       because a failed navigation fetch falls back to the cache. */
 
-var CACHE_NAME = "emma-study-shell-v16";
+var CACHE_NAME = "emma-study-shell-v17";
 
 /* This worker lives at the PAGE ROOT (published next to index.html):
    a service worker's scope can never extend above its own directory,

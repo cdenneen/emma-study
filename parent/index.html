@@ -4,326 +4,537 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#6d5df6" />
     <link rel="icon" href="data:," />
-    <title>Emma Study — Parent View</title>
+    <title>Emma's Study — Parent View</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
     <style>
+      /* Theme tokens: the student app's v16 indigo/pastel set, so the
+         two surfaces read as one product. Dark follows the phone's
+         own scheme (no manual toggle on the parent view). */
       :root {
-        --bg: #f7f6f2;
+        --bg: #f3f4f8;
         --surface: #ffffff;
-        --surface-2: #efeee8;
-        --ink: #22302b;
-        --ink-soft: #55645d;
-        --line: #dddcd2;
-        --accent: #2e7d5b;
-        --accent-soft: #e2efe7;
-        --warn: #b3261e;
-        --warn-soft: #fbe9e7;
-        --amber: #8a5a00;
-        --amber-soft: #fbf0d3;
-        --chip-mastered-bg: #2e7d5b;
-        --chip-mastered-ink: #ffffff;
-        --chip-learning-bg: #e2efe7;
-        --chip-learning-ink: #226147;
-        --chip-none-bg: #efeee8;
-        --chip-none-ink: #6b7670;
-        --bar: #2e7d5b;
-        --bar-zero: #dddcd2;
+        --surface-2: #eef0f6;
+        --ink: #1e2130;
+        --ink-soft: #6b7086;
+        --line: #e8eaf2;
+        --accent: #6d5df6;
+        --accent-dark: #5748d8;
+        --accent-ink: #ffffff;
+        --accent-soft: #efedff;
+        --tint-science: #e7f0ff;
+        --tint-math: #efedff;
+        --tint-ela: #ffefe3;
+        --tint-french: #ffeef5;
+        --tint-social: #e9f7f0;
+        --warn: #b7790a;
+        --warn-soft: #fdf1d7;
+        --good: #1f9d63;
+        --good-soft: #e6f7ee;
+        --bad: #e5484d;
+        --bad-soft: #ffe9ea;
+        --shadow: 0 2px 14px rgba(30, 33, 60, 0.07), 0 1px 3px rgba(30, 33, 60, 0.05);
+        --radius: 18px;
       }
       @media (prefers-color-scheme: dark) {
         :root {
-          --bg: #161a18;
-          --surface: #202623;
-          --surface-2: #2a302c;
-          --ink: #e8ece9;
-          --ink-soft: #a7b3ac;
-          --line: #39423d;
-          --accent: #6fce9f;
-          --accent-soft: #24402f;
-          --warn: #ff9d94;
-          --warn-soft: #4a2320;
-          --amber: #f0c56b;
-          --amber-soft: #463a1c;
-          --chip-mastered-bg: #2e7d5b;
-          --chip-mastered-ink: #ffffff;
-          --chip-learning-bg: #24402f;
-          --chip-learning-ink: #8fd8ae;
-          --chip-none-bg: #2a302c;
-          --chip-none-ink: #93a199;
-          --bar: #6fce9f;
-          --bar-zero: #39423d;
+          --bg: #161824;
+          --surface: #1e2130;
+          --surface-2: #282c42;
+          --ink: #f2f3fa;
+          --ink-soft: #a6abc2;
+          --line: #333850;
+          --accent: #8f7ff5;
+          --accent-dark: #b7adff;
+          --accent-ink: #1e2130;
+          --accent-soft: #2c2a4a;
+          --tint-science: #1d2c47;
+          --tint-math: #2c2a4a;
+          --tint-ela: #3d2b1e;
+          --tint-french: #3d2233;
+          --tint-social: #1e3329;
+          --warn: #e8b34b;
+          --warn-soft: #3a2f18;
+          --good: #3ecf8e;
+          --good-soft: #17352a;
+          --bad: #ff8589;
+          --bad-soft: #3d2126;
+          --shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
         }
       }
-      * { box-sizing: border-box; }
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      html, body { margin: 0; padding: 0; }
       body {
-        margin: 0;
+        font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
         background: var(--bg);
         color: var(--ink);
-        font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
-        line-height: 1.45;
+        line-height: 1.5;
+        min-height: 100vh;
         -webkit-font-smoothing: antialiased;
       }
-      main {
-        max-width: 680px;
-        margin: 0 auto;
-        padding: 28px 18px 40px;
+      /* Standing nav rule: the tab bar is FIXED and page scroll ends
+         above it — content carries bottom padding of bar height +
+         margin + the safe-area inset. */
+      .wrap {
+        max-width: 680px; margin: 0 auto;
+        padding: 20px 16px calc(112px + env(safe-area-inset-bottom));
       }
-      h1 {
-        font-size: 1.7rem;
-        line-height: 1.15;
-        margin: 0 0 6px;
-        letter-spacing: -0.01em;
+      .tab-bar {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+        display: flex; justify-content: center; gap: 4px;
+        background: var(--surface); border-top: 1px solid var(--line);
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+        box-shadow: 0 -6px 20px rgba(30, 33, 60, 0.08);
       }
-      .subtitle {
-        margin: 0 0 28px;
-        color: var(--ink-soft);
-        font-size: 0.95rem;
+      .tab-btn {
+        flex: 1; max-width: 130px; min-height: 50px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+        border: 1px solid transparent; background: transparent; color: var(--ink-soft);
+        font-family: inherit; font-size: 0.7rem; font-weight: 900; border-radius: 999px; cursor: pointer;
+        padding: 5px 2px;
       }
-      h2 {
-        font-size: 1.05rem;
-        margin: 0 0 10px;
-        letter-spacing: 0.01em;
+      .tab-btn .tab-ico { font-size: 1.08rem; line-height: 1.15; }
+      .tab-btn.is-active { background: var(--accent-soft); color: var(--accent-dark); border-color: var(--accent); }
+
+      .back-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--surface); border: 1px solid var(--line); color: var(--accent-dark);
+        font-weight: 900; font-size: 0.9rem; text-decoration: none;
+        padding: 9px 14px; border-radius: 999px; margin-bottom: 16px; min-height: 44px;
       }
-      section { margin-bottom: 30px; }
+      .back-btn:active { transform: scale(0.98); }
+      .eyebrow {
+        font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em;
+        text-transform: uppercase; color: var(--accent-dark); margin: 0 0 6px;
+      }
+      h1 { font-size: 1.65rem; line-height: 1.2; font-weight: 900; margin: 0 0 6px; }
+      .sub { color: var(--ink-soft); font-size: 1rem; margin: 0 0 6px; font-weight: 600; }
+      .freshness { color: var(--ink-soft); font-size: 0.85rem; font-weight: 700; margin: 0 0 20px; }
+      .panel-title { font-size: 1.45rem; font-weight: 900; margin: 2px 0 4px; }
+      .panel-sub { color: var(--ink-soft); font-weight: 600; margin: 0 0 16px; }
+      .panel[hidden] { display: none; }
+      .sect-head {
+        font-size: 0.85rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--accent-dark); margin: 22px 0 10px;
+      }
+      .sect-head:first-child { margin-top: 4px; }
       .card {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 14px 16px;
+        background: var(--surface); border: 1px solid var(--line);
+        border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+        margin-bottom: 12px;
       }
-      .card + .card { margin-top: 10px; }
-      .quiet { color: var(--ink-soft); font-size: 0.92rem; margin: 0; }
+      .card h3 { font-size: 1.05rem; font-weight: 900; margin: 0 0 4px; }
+      .card .card-sub { color: var(--ink-soft); font-weight: 600; font-size: 0.92rem; margin: 0 0 10px; }
+      .quiet { color: var(--ink-soft); font-weight: 600; margin: 0; }
+      .unavailable { color: var(--ink-soft); font-weight: 700; margin: 0; }
+      footer {
+        margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line);
+        color: var(--ink-soft); font-size: 0.82rem; font-weight: 600; text-align: center;
+      }
+
+      /* Overview: streak */
+      .streak-card { display: flex; align-items: center; gap: 14px; }
+      .streak-flame { font-size: 2.3rem; line-height: 1; }
+      .streak-main { flex: 1; min-width: 0; }
+      .streak-num { font-size: 1.35rem; font-weight: 900; line-height: 1.2; }
+      .streak-sub { color: var(--ink-soft); font-weight: 700; font-size: 0.92rem; }
+      .grace-chip {
+        flex: none; text-align: center; background: var(--accent-soft); color: var(--accent-dark);
+        border-radius: 12px; padding: 8px 10px; font-weight: 900; font-size: 0.78rem; line-height: 1.3;
+        max-width: 104px;
+      }
+      .grace-chip .grace-big { display: block; font-size: 0.95rem; }
+
+      /* Overview: honors watch */
+      .honors-row { padding: 12px 0 4px; border-top: 1px solid var(--line); }
+      .honors-row:first-of-type { border-top: none; padding-top: 4px; }
+      .honors-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+      .honors-name { font-weight: 900; font-size: 1.02rem; }
+      .honors-grade { font-size: 1.5rem; font-weight: 900; line-height: 1; }
+      .honors-grade.below { color: var(--bad); }
+      .honors-grade.above { color: var(--accent-dark); }
+      .honors-term { font-size: 0.78rem; font-weight: 800; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; }
+      .honors-track { position: relative; height: 8px; border-radius: 999px; background: var(--surface-2); margin: 12px 0 6px; }
+      .honors-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--accent); }
+      .honors-fill.below { background: var(--bad); }
+      .honors-tick { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); border-radius: 2px; }
+      .honors-tick-label { position: absolute; top: -19px; transform: translateX(-50%); font-size: 0.7rem; font-weight: 800; color: var(--ink-soft); white-space: nowrap; }
+      .honors-note { font-weight: 800; font-size: 0.92rem; margin: 2px 0 4px; }
+      .honors-note.below { color: var(--bad); }
+      .honors-note.above { color: var(--accent-dark); }
 
       /* Needs attention */
-      .flag-row {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        padding: 10px 0;
-        border-bottom: 1px solid var(--line);
-      }
+      .flag-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
       .flag-row:last-child { border-bottom: none; padding-bottom: 2px; }
       .flag-row:first-child { padding-top: 2px; }
-      .flag-where { font-size: 0.82rem; color: var(--ink-soft); }
-      .flag-topic { font-weight: 600; font-size: 1rem; }
-      .flag-nums { font-size: 0.9rem; }
       .tag {
-        display: inline-block;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        padding: 2px 8px;
-        border-radius: 999px;
-        margin-bottom: 4px;
-        align-self: flex-start;
+        display: inline-block; font-size: 0.7rem; font-weight: 900; letter-spacing: 0.04em;
+        text-transform: uppercase; padding: 2px 8px; border-radius: 999px; margin-bottom: 4px;
       }
-      .tag-cw { background: var(--warn-soft); color: var(--warn); }
-      .tag-weak { background: var(--amber-soft); color: var(--amber); }
-      .cw-num { color: var(--warn); font-weight: 700; }
+      .tag-real { background: var(--bad-soft); color: var(--bad); }
+      .tag-cw { background: var(--bad-soft); color: var(--bad); }
+      .tag-weak { background: var(--warn-soft); color: var(--warn); }
+      .tag-hw { background: var(--accent-soft); color: var(--accent-dark); }
+      .flag-topic { display: block; font-weight: 900; font-size: 0.98rem; }
+      .flag-nums { display: block; font-size: 0.9rem; font-weight: 600; color: var(--ink-soft); margin-top: 1px; }
 
-      /* Mastery */
-      .unit-head {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 10px;
-      }
-      .unit-title { font-weight: 600; font-size: 0.98rem; }
-      .unit-subject { font-size: 0.78rem; color: var(--ink-soft); display: block; font-weight: 400; }
-      .unit-stats { margin: 6px 0 0; font-size: 0.9rem; color: var(--ink-soft); }
-      .unit-stats .cw { color: var(--warn); font-weight: 700; }
-      .chip {
-        flex: none;
-        font-size: 0.74rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-        padding: 3px 10px;
-        border-radius: 999px;
-      }
-      .chip-mastered { background: var(--chip-mastered-bg); color: var(--chip-mastered-ink); }
-      .chip-learning { background: var(--chip-learning-bg); color: var(--chip-learning-ink); }
-      .chip-none { background: var(--chip-none-bg); color: var(--chip-none-ink); }
+      /* Coming up */
+      .coming-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+      .coming-row:last-child { border-bottom: none; padding-bottom: 2px; }
+      .coming-row:first-of-type { padding-top: 2px; }
+      .coming-main { flex: 1; min-width: 0; }
+      .coming-what { display: block; font-weight: 900; font-size: 0.98rem; margin-top: 4px; }
+      .coming-topic { display: block; font-size: 0.88rem; font-weight: 600; color: var(--ink-soft); margin-top: 1px; }
+      .coming-date { flex: none; font-weight: 900; font-size: 0.9rem; color: var(--accent-dark); white-space: nowrap; padding-top: 2px; }
+      .tag-kind-quiz { background: var(--accent-soft); color: var(--accent-dark); }
+      .tag-kind-test { background: var(--warn-soft); color: var(--warn); }
+      .tag-kind-assignment { background: var(--good-soft); color: var(--good); }
+      .tag-kind-other { background: var(--surface-2); color: var(--ink-soft); }
 
-      /* Topic detail */
-      .topic-group-subject {
-        font-size: 0.8rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--ink-soft);
-        margin: 18px 0 6px;
-      }
+      /* Grades */
+      .grade-cols { display: flex; gap: 8px; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); padding: 0 2px 8px; }
+      .grade-cols .gc-name { flex: 1; }
+      .grade-cols .gc-term { width: 62px; text-align: right; }
+      .grade-row { display: flex; align-items: center; gap: 10px; padding: 11px 2px; border-top: 1px solid var(--line); }
+      .grade-ico { flex: none; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+      .grade-ico.science { background: var(--tint-science); }
+      .grade-ico.math { background: var(--tint-math); }
+      .grade-ico.ela { background: var(--tint-ela); }
+      .grade-ico.french { background: var(--tint-french); }
+      .grade-ico.social { background: var(--tint-social); }
+      .grade-main { flex: 1; min-width: 0; }
+      .grade-name { font-weight: 900; font-size: 1rem; line-height: 1.25; }
+      .grade-flag { font-size: 0.82rem; font-weight: 800; }
+      .grade-flag.below { color: var(--bad); }
+      .grade-flag.above { color: var(--good); }
+      .grade-val { width: 62px; text-align: right; font-size: 1.25rem; font-weight: 900; }
+      .grade-val .gv-note { display: block; font-size: 0.72rem; font-weight: 800; color: var(--ink-soft); }
+      .grade-val.empty { color: var(--ink-soft); font-weight: 700; }
+      .grades-foot { color: var(--ink-soft); font-weight: 600; font-size: 0.9rem; margin: 10px 2px 0; }
+
+      /* Real quizzes */
+      .quiz-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 10px; overflow: hidden; }
+      .quiz-head { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: none; cursor: pointer; font-family: inherit; color: var(--ink); padding: 14px 16px; min-height: 52px; }
+      .quiz-head-main { flex: 1; min-width: 0; }
+      .quiz-title { display: block; font-weight: 900; font-size: 1rem; line-height: 1.3; }
+      .quiz-meta { display: block; color: var(--ink-soft); font-weight: 700; font-size: 0.85rem; margin-top: 1px; }
+      .quiz-score { text-align: right; flex: none; }
+      .quiz-score .qs-num { display: block; font-weight: 900; font-size: 1.05rem; }
+      .quiz-score .qs-pct { display: block; font-weight: 900; font-size: 0.82rem; }
+      .qs-pct.good { color: var(--good); } .qs-pct.mid { color: var(--warn); } .qs-pct.low { color: var(--bad); }
+      .quiz-chev { flex: none; color: var(--ink-soft); font-weight: 900; transition: transform 0.15s; }
+      .quiz-card.open .quiz-chev { transform: rotate(180deg); }
+      .quiz-detail { border-top: 1px solid var(--line); padding: 6px 16px 12px; }
+      .quiz-detail[hidden] { display: none; }
+      .qi-row { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+      .qi-row:last-child { border-bottom: none; }
+      .qi-mark { flex: none; width: 24px; height: 24px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.85rem; margin-top: 1px; }
+      .qi-mark.ok { background: var(--good-soft); color: var(--good); }
+      .qi-mark.no { background: var(--bad-soft); color: var(--bad); }
+      .qi-main { flex: 1; min-width: 0; }
+      .qi-q { font-weight: 800; font-size: 0.93rem; line-height: 1.4; }
+      .qi-a { font-size: 0.88rem; font-weight: 600; color: var(--ink-soft); line-height: 1.45; margin-top: 2px; }
+      .qi-a b { color: var(--ink); }
+      .qi-topic { display: inline-block; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.03em; text-transform: uppercase; background: var(--surface-2); color: var(--ink-soft); padding: 2px 8px; border-radius: 999px; margin-top: 5px; }
+      .quiz-agg { font-size: 0.92rem; font-weight: 600; color: var(--ink-soft); line-height: 1.5; margin: 8px 0 4px; }
+      .quiz-agg li { margin-bottom: 4px; }
+
+      /* Practice */
+      .chip { flex: none; font-size: 0.74rem; font-weight: 900; letter-spacing: 0.03em; padding: 3px 10px; border-radius: 999px; }
+      .chip-mastered { background: var(--accent); color: var(--accent-ink); }
+      .chip-learning { background: var(--accent-soft); color: var(--accent-dark); }
+      .chip-none { background: var(--surface-2); color: var(--ink-soft); }
+      .unit-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+      .unit-title { font-weight: 900; font-size: 0.98rem; line-height: 1.35; }
+      .unit-subject { font-size: 0.78rem; color: var(--ink-soft); display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+      .unit-stats { margin: 6px 0 0; font-size: 0.9rem; font-weight: 600; color: var(--ink-soft); }
+      .unit-stats .cw { color: var(--bad); font-weight: 900; }
+      .unit-warn { margin: 8px 0 0; font-size: 0.9rem; font-weight: 800; color: var(--bad); background: var(--bad-soft); border-radius: 10px; padding: 8px 10px; }
+      .weak-row { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+      .weak-row:last-child { border-bottom: none; padding-bottom: 2px; }
+      .weak-row:first-child { padding-top: 2px; }
+      .weak-main { flex: 1; min-width: 0; }
+      .weak-topic { font-weight: 900; font-size: 0.97rem; }
+      .weak-detail { font-size: 0.9rem; font-weight: 600; color: var(--ink-soft); line-height: 1.45; margin-top: 1px; }
+      .weak-source { font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); margin-top: 2px; }
+      .weak-meter { flex: none; width: 58px; text-align: right; }
+      .weak-meter .wm-num { font-weight: 900; font-size: 0.95rem; }
+      .weak-meter .wm-track { height: 6px; border-radius: 999px; background: var(--surface-2); margin-top: 5px; overflow: hidden; }
+      .weak-meter .wm-fill { height: 100%; background: var(--warn); border-radius: 999px; }
+      .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stat { background: var(--surface-2); border-radius: 12px; padding: 12px; text-align: center; }
+      .stat .num { font-size: 1.5rem; font-weight: 900; line-height: 1.1; color: var(--accent-dark); }
+      .stat .num.bad { color: var(--bad); }
+      .stat .lbl { font-size: 0.8rem; font-weight: 800; color: var(--ink-soft); margin-top: 3px; }
+      details.topic-unit { border-top: 1px solid var(--line); padding: 4px 0; }
+      details.topic-unit:first-of-type { border-top: none; }
+      details.topic-unit summary { cursor: pointer; font-weight: 900; font-size: 0.95rem; padding: 8px 0; list-style: none; }
+      details.topic-unit summary::-webkit-details-marker { display: none; }
+      details.topic-unit summary .tu-flag { color: var(--bad); font-size: 0.82rem; font-weight: 900; margin-left: 6px; }
+      .topic-group-subject { font-size: 0.8rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin: 16px 0 4px; }
       .topic-group-subject:first-child { margin-top: 0; }
-      .topic-unit { font-weight: 600; font-size: 0.95rem; margin: 12px 0 2px; }
-      .topic-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 7px 0;
-        border-bottom: 1px solid var(--line);
-        font-size: 0.92rem;
-      }
+      .topic-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 0.92rem; }
       .topic-row:last-child { border-bottom: none; }
-      .topic-name { min-width: 0; }
-      .topic-name .warn-mark { color: var(--warn); font-weight: 700; }
-      .topic-nums { text-align: right; color: var(--ink-soft); white-space: nowrap; font-size: 0.86rem; }
-      .topic-nums .acc { color: var(--ink); font-weight: 600; }
+      .topic-name { min-width: 0; font-weight: 700; }
+      .topic-name .warn-mark { color: var(--bad); font-weight: 900; }
+      .topic-nums { text-align: right; color: var(--ink-soft); white-space: nowrap; font-size: 0.86rem; font-weight: 600; }
+      .topic-nums .acc { color: var(--ink); font-weight: 900; }
+      .topic-nums .cw-num { color: var(--bad); font-weight: 900; }
+
+      /* Homework */
+      .hw-day-head { display: flex; align-items: baseline; gap: 8px; margin: 20px 0 10px; }
+      .hw-day-head:first-child { margin-top: 2px; }
+      .hw-day-name { font-size: 1.15rem; font-weight: 900; }
+      .hw-day-date { color: var(--ink-soft); font-weight: 700; font-size: 0.92rem; }
+      .hw-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 10px; overflow: hidden; }
+      .hw-head { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: none; cursor: pointer; font-family: inherit; color: var(--ink); padding: 14px 16px; min-height: 52px; }
+      .hw-head-main { flex: 1; min-width: 0; }
+      .hw-title { display: block; font-weight: 900; font-size: 0.99rem; line-height: 1.35; }
+      .hw-title .ok-n { color: var(--good); } .hw-title .warn-n { color: var(--warn); } .hw-title .bad-n { color: var(--bad); }
+      .hw-waiting { display: block; color: var(--ink-soft); font-weight: 700; font-size: 0.9rem; margin-top: 2px; }
+      .hw-chev { flex: none; color: var(--ink-soft); font-weight: 900; transition: transform 0.15s; }
+      .hw-card.open .hw-chev { transform: rotate(180deg); }
+      .hw-detail { border-top: 1px solid var(--line); padding: 10px 16px 12px; }
+      .hw-detail[hidden] { display: none; }
+      .hw-summary { font-size: 0.94rem; font-weight: 700; line-height: 1.5; margin: 0 0 6px; }
+      .hw-item { border-top: 1px solid var(--line); padding: 10px 0 4px; margin-top: 8px; }
+      .hw-item:first-of-type { border-top: none; margin-top: 2px; }
+      .hw-item-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+      .hw-problem { font-weight: 900; font-size: 0.95rem; }
+      .hw-corrected { color: var(--good); font-weight: 900; font-size: 0.85rem; white-space: nowrap; }
+      .verdict { font-size: 0.78rem; font-weight: 900; letter-spacing: 0.03em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
+      .verdict.correct { background: var(--good-soft); color: var(--good); }
+      .verdict.worth_a_look { background: var(--warn-soft); color: var(--warn); }
+      .verdict.needs_retake { background: var(--bad-soft); color: var(--bad); }
+      .hw-note, .hw-rule { font-size: 0.92rem; font-weight: 600; line-height: 1.5; margin: 5px 0 4px; }
+      .hw-rule { color: var(--ink-soft); }
+      .hw-attempt { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; margin: 8px 0; }
+      .hw-attempt-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+      .hw-attempt-time { font-size: 0.82rem; font-weight: 700; color: var(--ink-soft); }
+      .hw-attempt-note { font-size: 0.92rem; font-weight: 600; line-height: 1.5; margin: 4px 0 2px; }
+      .hw-checking { font-size: 0.9rem; font-weight: 700; color: var(--ink-soft); margin: 4px 0 2px; }
+      .hw-earlier-toggle {
+        width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface);
+        color: var(--ink); font-family: inherit; font-size: 0.95rem; font-weight: 900;
+        border-radius: var(--radius); padding: 12px 16px; cursor: pointer; margin-bottom: 10px; min-height: 48px;
+      }
 
       /* Activity */
-      .strip {
-        display: flex;
-        align-items: flex-end;
-        gap: 4px;
-        height: 92px;
-        margin-top: 6px;
-      }
-      .strip .col {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-end;
-        height: 100%;
-        gap: 5px;
-        min-width: 0;
-      }
-      .strip .bar {
-        width: 100%;
-        max-width: 26px;
-        border-radius: 3px 3px 0 0;
-        background: var(--bar);
-        min-height: 3px;
-      }
-      .strip .bar.zero { background: var(--bar-zero); }
-      .strip .day-label { font-size: 0.62rem; color: var(--ink-soft); white-space: nowrap; }
-      .strip .day-count { font-size: 0.66rem; color: var(--ink-soft); font-weight: 600; }
-      .session-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 8px 0;
-        border-bottom: 1px solid var(--line);
-        font-size: 0.92rem;
-      }
-      .session-row:last-child { border-bottom: none; padding-bottom: 2px; }
-      .session-row:first-child { padding-top: 2px; }
-      .session-what { min-width: 0; }
-      .session-mode { display: block; font-size: 0.78rem; color: var(--ink-soft); }
-      .session-score { text-align: right; white-space: nowrap; }
-      .session-score .score { font-weight: 700; }
-      .session-score .date { display: block; font-size: 0.78rem; color: var(--ink-soft); }
-
-      /* Day by day */
+      .strip { display: flex; align-items: flex-end; gap: 4px; height: 92px; margin-top: 6px; }
+      .strip .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 5px; min-width: 0; }
+      .strip .bar { width: 100%; max-width: 26px; border-radius: 3px 3px 0 0; background: var(--accent); min-height: 3px; }
+      .strip .bar.zero { background: var(--surface-2); }
+      .strip .day-label { font-size: 0.62rem; color: var(--ink-soft); white-space: nowrap; font-weight: 700; }
+      .strip .day-count { font-size: 0.66rem; color: var(--ink-soft); font-weight: 900; }
       .day-block { padding: 12px 0; border-bottom: 1px solid var(--line); }
       .day-block:first-child { padding-top: 2px; }
       .day-block:last-child { border-bottom: none; padding-bottom: 2px; }
-      .day-block.is-today .day-date { color: var(--accent); }
+      .day-block.is-today .day-date { color: var(--accent-dark); }
       .day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-      .day-date { font-weight: 700; font-size: 0.98rem; }
-      .day-relative { font-weight: 600; font-size: 0.78rem; color: var(--accent); margin-left: 6px; letter-spacing: 0.02em; text-transform: uppercase; }
-      .day-summary { font-size: 0.9rem; color: var(--ink-soft); margin-top: 2px; }
-      .day-summary .acc-strong { color: var(--ink); font-weight: 700; }
-      .day-summary .split { white-space: nowrap; }
-      .day-none { font-size: 0.9rem; color: var(--ink-soft); margin-top: 2px; font-style: italic; }
-      .day-sessions { margin-top: 8px; display: flex; flex-direction: column; gap: 0; }
+      .day-date { font-weight: 900; font-size: 0.98rem; }
+      .day-relative { font-weight: 900; font-size: 0.78rem; color: var(--accent-dark); margin-left: 6px; letter-spacing: 0.02em; text-transform: uppercase; }
+      .day-summary { font-size: 0.9rem; font-weight: 600; color: var(--ink-soft); margin-top: 2px; }
+      .day-summary .acc-strong { color: var(--ink); font-weight: 900; }
+      .day-none { font-size: 0.9rem; font-weight: 600; color: var(--ink-soft); margin-top: 2px; font-style: italic; }
+      .day-sessions { margin-top: 8px; }
       .day-session-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0 6px 12px; border-left: 2px solid var(--line); font-size: 0.9rem; }
-      .day-session-row + .day-session-row { margin-top: 2px; }
-      .day-session-what { min-width: 0; }
-      .day-session-subject { display: block; font-size: 0.76rem; color: var(--ink-soft); }
-      .day-session-score { text-align: right; white-space: nowrap; font-weight: 700; }
-      .day-session-score .pct { display: block; font-weight: 400; font-size: 0.78rem; color: var(--ink-soft); }
-      .cold-badge { display: inline-block; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: var(--surface-2); color: var(--ink-soft); padding: 1px 6px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; }
-
-      .state-box {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 22px 18px;
-        text-align: center;
-        color: var(--ink-soft);
-      }
+      .day-session-what { min-width: 0; font-weight: 700; }
+      .day-session-subject { display: block; font-size: 0.76rem; font-weight: 700; color: var(--ink-soft); }
+      .day-session-score { text-align: right; white-space: nowrap; font-weight: 900; }
+      .day-session-score .pct { display: block; font-weight: 700; font-size: 0.78rem; color: var(--ink-soft); }
+      .cold-badge { display: inline-block; font-size: 0.68rem; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; background: var(--accent-soft); color: var(--accent-dark); padding: 1px 6px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; }
       .hidden { display: none; }
-      footer {
-        margin-top: 34px;
-        padding-top: 14px;
-        border-top: 1px solid var(--line);
-        color: var(--ink-soft);
-        font-size: 0.82rem;
-        text-align: center;
-      }
     </style>
   </head>
   <body>
-    <main>
-      <h1>Emma's Study Progress</h1>
-      <p class="subtitle">Parent view — updated automatically as she studies. Shows summaries only, never individual answers.</p>
+    <div class="wrap">
+      <header>
+        <a class="back-btn" href="../" id="back-to-app">← Emma's app</a>
+        <p class="eyebrow">Parent view</p>
+        <h1>Emma — at a glance</h1>
+        <p class="sub">Grades, practice, homework and activity — the whole picture, updated as she studies.</p>
+        <p class="freshness" id="freshness">Loading the latest data…</p>
+      </header>
 
-      <div id="loading" class="state-box">Loading progress…</div>
-      <div id="load-error" class="state-box hidden">Couldn't load progress right now — try reloading.</div>
-      <div id="empty" class="state-box hidden">No study activity yet — progress will appear here as Emma studies.</div>
-
-      <div id="content" class="hidden">
-        <section>
-          <h2>Needs attention</h2>
-          <div class="card" id="attention-card"></div>
+      <main>
+        <section class="panel" id="panel-overview">
+          <div id="ov-streak"></div>
+          <div id="ov-honors"></div>
+          <div id="ov-attention"></div>
+          <div id="ov-coming"></div>
         </section>
 
-        <section>
-          <h2>Mastery by unit</h2>
-          <div id="mastery-list"></div>
+        <section class="panel" id="panel-grades" hidden>
+          <h2 class="panel-title">Grades</h2>
+          <p class="panel-sub">Course grades from Infinite Campus, plus every real test and quiz on record.</p>
+          <div id="gr-courses"></div>
+          <div id="gr-quizzes"></div>
         </section>
 
-        <section>
-          <h2>Topic detail</h2>
-          <div class="card" id="topic-card"></div>
+        <section class="panel" id="panel-practice" hidden>
+          <h2 class="panel-title">Practice</h2>
+          <p class="panel-sub">What the app itself says — mastery, weak topics and how her confidence lines up.</p>
+          <div id="pr-mastery"></div>
+          <div id="pr-weak"></div>
+          <div id="pr-confidence"></div>
+          <div id="pr-topics"></div>
         </section>
 
-        <section>
-          <h2>Activity — last 14 days</h2>
-          <div class="card">
-            <div class="strip" id="activity-strip"></div>
-            <p class="quiet" id="activity-total" style="margin-top:10px;"></p>
-          </div>
+        <section class="panel" id="panel-homework" hidden>
+          <h2 class="panel-title">Homework checks</h2>
+          <p class="panel-sub">Photo checks of her paper homework — tap a check to see it problem by problem.</p>
+          <div id="hw-list"></div>
         </section>
 
-        <section>
-          <h2>Day by day — last 14 days</h2>
-          <div class="card" id="daybyday-card"></div>
+        <section class="panel" id="panel-activity" hidden>
+          <h2 class="panel-title">Activity</h2>
+          <p class="panel-sub">The last 14 days, day by day (New York time).</p>
+          <div id="ac-strip"></div>
+          <div id="ac-days"></div>
         </section>
+      </main>
 
-        <section>
-          <h2>Recent sessions</h2>
-          <div class="card" id="sessions-card"></div>
-        </section>
-      </div>
+      <footer>Recorded results and summaries only · Raw answers are never shown here.</footer>
+    </div>
 
-      <footer>Aggregates only · Raw answers are never exposed here.</footer>
-    </main>
+    <nav class="tab-bar" id="tab-bar" aria-label="Parent view sections">
+      <button class="tab-btn is-active" type="button" data-ptab="overview"><span class="tab-ico">🏠</span>Overview</button>
+      <button class="tab-btn" type="button" data-ptab="grades"><span class="tab-ico">⭐</span>Grades</button>
+      <button class="tab-btn" type="button" data-ptab="practice"><span class="tab-ico">🎯</span>Practice</button>
+      <button class="tab-btn" type="button" data-ptab="homework"><span class="tab-ico">📚</span>Homework</button>
+      <button class="tab-btn" type="button" data-ptab="activity"><span class="tab-ico">📊</span>Activity</button>
+    </nav>
 
     <script>
+      "use strict";
       var BASE = "https://ysxipmxwfupqzywhevji.supabase.co/rest/v1";
       var KEY = "sb_publishable_CqAHlsNUaLDEahptk4msZg_xNxp0ywM";
       var SID = "emma-7e61cf874518";
+      var HONORS_LINE = 85;
 
-      var SUBJECT_LABELS = {
-        science: "Science",
-        math: "Math",
-        social_studies: "Social Studies",
-        ela: "ELA",
-        french: "French"
-      };
-      function subjectLabel(s) {
-        return SUBJECT_LABELS[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "");
-      }
+      /* ---------- small helpers ---------- */
       function esc(s) {
         return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
           return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
         });
       }
-      function pct(correct, total) {
+      function pctOf(correct, total) {
         if (!total) return null;
         return Math.round((correct / total) * 100);
       }
+      var SUBJECT_LABELS = {
+        science: "Science", math: "Math", social_studies: "Social Studies",
+        ela: "ELA", french: "French"
+      };
+      function subjectLabel(s) {
+        return SUBJECT_LABELS[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "");
+      }
+      /* study_course_grades.subject already uses display names. */
+      function gradeDisplayName(row) {
+        if (!row) return "";
+        if (row.subject === "ELA") return "ELA";
+        return row.is_honors ? "Honors " + row.subject : row.subject;
+      }
+      function gradeIcon(subject) {
+        var map = {
+          "Science": ["🧪", "science"], "Math": ["➗", "math"], "ELA": ["✍️", "ela"],
+          "French": ["🇫🇷", "french"], "Social Studies": ["🌍", "social"]
+        };
+        return map[subject] || ["📘", "math"];
+      }
+      function unitSubjectOf(unitId, units) {
+        for (var i = 0; i < (units || []).length; i++) if (units[i].id === unitId) return units[i].subject;
+        return null;
+      }
+
+      /* ---------- America/New_York calendar helpers ----------
+         Every day boundary on this page is a New York day, whatever
+         timezone the viewing phone sits in (the old view's strip
+         quietly used the device's own timezone and disagreed with
+         its own day-by-day list when travelling). */
+      function nyParts(dateObj) {
+        var fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" });
+        var parts = fmt.formatToParts(dateObj);
+        var y = "", m = "", d = "";
+        parts.forEach(function (p) {
+          if (p.type === "year") y = p.value;
+          if (p.type === "month") m = p.value;
+          if (p.type === "day") d = p.value;
+        });
+        return { y: parseInt(y, 10), m: parseInt(m, 10), d: parseInt(d, 10) };
+      }
+      function keyFromYMD(y, m, d) {
+        return y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+      }
+      function nyKey(dateObj) {
+        var p = nyParts(dateObj);
+        return keyFromYMD(p.y, p.m, p.d);
+      }
+      /* NY day key for a stored timestamp, or null when the value
+         is missing/unparseable — one bad row must never take a
+         whole section down with it. */
+      function dayKeyOf(ts) {
+        var d = ts ? new Date(ts) : null;
+        if (!d || isNaN(d.getTime())) return null;
+        return nyKey(d);
+      }
+      function addDaysKey(key, n) {
+        var p = String(key).split("-");
+        var dt = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + n));
+        return keyFromYMD(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
+      }
+      function dayNumberOf(key) {
+        var p = String(key).split("-");
+        return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000;
+      }
+      function formatDayLabel(key) {
+        var dt = new Date(key + "T12:00:00Z");
+        return dt.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
+      }
+      function formatDayFull(key) {
+        var dt = new Date(key + "T12:00:00Z");
+        return dt.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" });
+      }
+      function formatQuizDate(quizDate) {
+        if (!quizDate) return "";
+        var dt = new Date(String(quizDate).slice(0, 10) + "T12:00:00Z");
+        return dt.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
+      }
+      function formatTimeNY(ts) {
+        var d = ts ? new Date(ts) : null;
+        if (!d || isNaN(d.getTime())) return "";
+        try {
+          return d.toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+        } catch (e) { return ""; }
+      }
+
+      /* ---------- streak (same rule as the student app) ----------
+         Active day = answers > 0. A gap of up to 2 missed days
+         between active days keeps the chain alive; the streak
+         counts ACTIVE days, and dies when today is more than 3
+         days past the last active day. */
+      function computeStreak(activeDaysDesc, today) {
+        if (!activeDaysDesc || !activeDaysDesc.length) return 0;
+        var t = dayNumberOf(today);
+        var last = dayNumberOf(activeDaysDesc[0]);
+        if (t - last > 3) return 0;
+        var streak = 1;
+        for (var i = 1; i < activeDaysDesc.length; i++) {
+          var gap = dayNumberOf(activeDaysDesc[i - 1]) - dayNumberOf(activeDaysDesc[i]);
+          if (gap <= 3) streak++; else break;
+        }
+        return streak;
+      }
+
+      /* ---------- data loading, isolated per table ----------
+         Every table settles on its own. A failed (or slow) table
+         degrades only the sections that need it — never the whole
+         page (the old view's single Promise.all could blank it). */
+      var SRC = {};   /* key -> { status: 'pending'|'ok'|'fail', rows } */
+      var SETTLED = 0, TOTAL_SOURCES = 0;
       function fetchTable(path) {
         return fetch(BASE + "/" + path, {
           headers: { apikey: KEY, Authorization: "Bearer " + KEY, "Accept-Profile": "study" }
@@ -332,100 +543,584 @@
           return r.json();
         });
       }
-
-      var loadingEl = document.getElementById("loading");
-      var errorEl = document.getElementById("load-error");
-      var emptyEl = document.getElementById("empty");
-      var contentEl = document.getElementById("content");
-
-      Promise.all([
-        fetchTable("study_units?select=id,subject,title"),
-        fetchTable("study_mastery?select=unit_id,answers,correct,days,confident_wrong,state&study_id=eq." + SID),
-        fetchTable("study_topic_mastery?select=unit_id,topic,answers_sure,correct_sure,answers_guessed,correct_guessed,confident_wrong,days_sure&study_id=eq." + SID),
-        fetchTable("study_daily_activity?select=day,answers,correct,sure_answers,guessed_answers&study_id=eq." + SID + "&order=day.desc&limit=60"),
-        fetchTable("study_attempt_summary?select=unit_id,mode,score,total,created_at&study_id=eq." + SID + "&order=created_at.desc&limit=100")
-      ]).then(function (results) {
-        var units = results[0], mastery = results[1], topics = results[2], daily = results[3], attempts = results[4];
-        loadingEl.classList.add("hidden");
-
-        var hasProgress = mastery.length || topics.length || daily.length || attempts.length;
-        if (!hasProgress) {
-          emptyEl.classList.remove("hidden");
+      function load(key, path) {
+        SRC[key] = { status: "pending", rows: null };
+        TOTAL_SOURCES++;
+        fetchTable(path).then(function (rows) {
+          SRC[key] = { status: "ok", rows: rows || [] };
+        }, function () {
+          SRC[key] = { status: "fail", rows: null };
+        }).then(function () {
+          SETTLED++;
+          renderSections();
+          if (SETTLED >= TOTAL_SOURCES) stampFreshness();
+        });
+      }
+      function got(key) {
+        return SRC[key] && SRC[key].status === "ok" ? SRC[key].rows : null;
+      }
+      function settled() {
+        for (var k in SRC) if (SRC[k].status === "pending") return false;
+        return true;
+      }
+      function needsSettled(keys) {
+        for (var i = 0; i < keys.length; i++) {
+          if (!SRC[keys[i]] || SRC[keys[i]].status === "pending") return false;
+        }
+        return true;
+      }
+      function stampFreshness() {
+        var el = document.getElementById("freshness");
+        if (!el) return;
+        var anyOk = false;
+        for (var k in SRC) if (SRC[k].status === "ok") { anyOk = true; break; }
+        if (!anyOk) {
+          el.textContent = "Couldn't load data just now — check the connection and reload.";
           return;
         }
-        contentEl.classList.remove("hidden");
+        var when = new Date().toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+        el.textContent = "Updated " + when;
+      }
+      function unavailableCard(title) {
+        return '<div class="card">' + (title ? "<h3>" + esc(title) + "</h3>" : "") +
+          '<p class="unavailable">This part is unavailable right now — try reloading in a bit.</p></div>';
+      }
+      function loadingCard() {
+        return '<div class="card"><p class="quiet">Loading…</p></div>';
+      }
 
+      /* ---------- quiz ↔ unit "area" mapping ----------
+         A real quiz belongs to a unit's area when the system's own
+         records tie them together: a weak topic sourced from that
+         quiz names the unit; the quiz's per-question topics match
+         the unit's topics; or a content word from the quiz title
+         appears in the unit's title or topics. */
+      var QUIZ_STOP = { quiz: 1, test: 1, exam: 1, unit: 1, with: 1, from: 1, part: 1, the: 1, and: 1 };
+      function unitTopicSet(unitId, topics, weak) {
+        var set = {};
+        (topics || []).forEach(function (t) { if (t.unit_id === unitId && t.topic) set[String(t.topic).toLowerCase()] = true; });
+        (weak || []).forEach(function (w) { if (w.unit_id === unitId && w.topic) set[String(w.topic).toLowerCase()] = true; });
+        return set;
+      }
+      function quizUnitIds(quiz, units, topics, weak, quizItems) {
+        var ids = {};
+        (weak || []).forEach(function (w) {
+          if (w.unit_id && w.source && String(w.source).indexOf(quiz.title) !== -1) ids[w.unit_id] = true;
+        });
+        var items = (quizItems || []).filter(function (it) { return it.quiz_id === quiz.id; });
+        (units || []).forEach(function (u) {
+          var set = unitTopicSet(u.id, topics, weak);
+          for (var i = 0; i < items.length; i++) {
+            if (items[i].topic && set[String(items[i].topic).toLowerCase()]) { ids[u.id] = true; break; }
+          }
+          var hay = (u.title + " " + Object.keys(set).join(" ")).toLowerCase();
+          var tokens = String(quiz.title).toLowerCase().split(/[^a-z0-9]+/);
+          for (var j = 0; j < tokens.length; j++) {
+            var tok = tokens[j];
+            if (tok.length >= 4 && !QUIZ_STOP[tok] && hay.indexOf(tok) !== -1) { ids[u.id] = true; break; }
+          }
+        });
+        return ids;
+      }
+      /* The worst (lowest-%) real quiz under 70% in a unit's area. */
+      function contradictingQuiz(unitId, units, topics, weak, quizzes, quizItems) {
+        var worst = null;
+        (quizzes || []).forEach(function (q) {
+          var p = pctOf(q.score, q.total);
+          if (p === null || p >= 70) return;
+          if (!quizUnitIds(q, units, topics, weak, quizItems)[unitId]) return;
+          if (!worst || p < worst.pct) worst = { quiz: q, pct: p };
+        });
+        return worst;
+      }
+
+      /* ---------- section rendering ---------- */
+      var renderedOnce = {};
+      function renderSections() {
+        /* Each section renders (or degrades) on its own: a fault in
+           one renderer must never take the others down with it. */
+        [renderStreak, renderHonors, renderAttention, renderComing, renderGradeCourses,
+         renderGradeQuizzes, renderPracticeMastery, renderPracticeWeak,
+         renderConfidence, renderTopicDetail, renderHomework, renderActivity
+        ].forEach(function (fn) { try { fn(); } catch (e) {} });
+      }
+      function sectionReady(id, keys) {
+        if (renderedOnce[id]) return false;
+        if (!needsSettled(keys)) return false;
+        renderedOnce[id] = true;
+        return true;
+      }
+
+      /* ----- Overview: streak ----- */
+      function renderStreak() {
+        var el = document.getElementById("ov-streak");
+        if (!el || renderedOnce.streak) return;
+        if (!needsSettled(["daily"])) { el.innerHTML = loadingCard(); return; }
+        renderedOnce.streak = true;
+        var daily = got("daily");
+        if (!daily) { el.innerHTML = unavailableCard("Study streak"); return; }
+        var today = nyKey(new Date());
+        var byDay = {};
+        daily.forEach(function (d) { byDay[String(d.day).slice(0, 10)] = d; });
+        var active = daily.filter(function (d) { return (d.answers || 0) > 0; })
+          .map(function (d) { return String(d.day).slice(0, 10); })
+          .sort().reverse();
+        var streak = computeStreak(active, today);
+        var todayRow = byDay[today] || null;
+        var sub;
+        if (streak > 0) {
+          if (todayRow && todayRow.answers > 0) {
+            sub = "Studied today · " + todayRow.answers + (todayRow.answers === 1 ? " answer" : " answers") + " · " + todayRow.correct + " correct";
+          } else {
+            sub = "Not studied yet today — a session tonight keeps it alive";
+          }
+        } else {
+          sub = active.length
+            ? "Last studied " + formatDayLabel(active[0]) + " — tonight is a good night to restart"
+            : "No study days recorded yet";
+        }
+        el.innerHTML = '<div class="card streak-card"><div class="streak-flame">' + (streak > 0 ? "🔥" : "💤") + '</div>' +
+          '<div class="streak-main"><div class="streak-num">' + esc(streak > 0 ? streak + "-day streak" : "No active streak") + '</div>' +
+          '<div class="streak-sub">' + esc(sub) + '</div></div>' +
+          '<div class="grace-chip"><span class="grace-big">2-day</span>grace — weekends don\'t break it</div></div>';
+      }
+
+      /* ----- Overview: honors watch ----- */
+      function honorsPick(grades) {
+        /* Latest term overall = the current term. Per honors subject:
+           the current-term row if there is one, else its latest final. */
+        var terms = {};
+        grades.forEach(function (g) { terms[g.term] = true; });
+        var termList = Object.keys(terms).sort();
+        var current = termList[termList.length - 1];
+        var bySubject = {};
+        grades.filter(function (g) { return g.is_honors; }).forEach(function (g) {
+          var cur = bySubject[g.subject];
+          if (!cur) { bySubject[g.subject] = g; return; }
+          if (g.term === current && cur.term !== current) bySubject[g.subject] = g;
+          else if (g.term > cur.term) bySubject[g.subject] = g;
+        });
+        return { current: current, rows: Object.keys(bySubject).map(function (k) { return bySubject[k]; }) };
+      }
+      function topWeakForSubject(weak, subjectDisplay) {
+        if (!weak) return null;
+        var best = null;
+        weak.forEach(function (w) {
+          if (w.subject === subjectDisplay && (!best || (w.weight || 0) > (best.weight || 0))) best = w;
+        });
+        return best;
+      }
+      function renderHonors() {
+        var el = document.getElementById("ov-honors");
+        if (!el || renderedOnce.honors) return;
+        if (!needsSettled(["grades", "weak"])) { el.innerHTML = loadingCard(); return; }
+        renderedOnce.honors = true;
+        var grades = got("grades");
+        if (!grades) { el.innerHTML = unavailableCard("Honors watch"); return; }
+        var weak = got("weak");
+        var pick = honorsPick(grades);
+        if (!pick.rows.length) {
+          el.innerHTML = '<div class="card"><h3>Honors watch</h3><p class="quiet">No honors grades recorded yet.</p></div>';
+          return;
+        }
+        var rows = pick.rows.slice().sort(function (a, b) { return Number(a.grade_pct) - Number(b.grade_pct); });
+        var html = '<div class="card"><h3>Honors watch</h3>' +
+          '<p class="card-sub">She needs 85+ in both honors classes to stay in the program.</p>';
+        rows.forEach(function (g) {
+          var val = Number(g.grade_pct);
+          var below = val < HONORS_LINE;
+          var icon = gradeIcon(g.subject)[0];
+          var termLabel = g.term === pick.current ? g.term + " so far" : g.term + " final";
+          var note;
+          var tw = topWeakForSubject(weak, g.subject);
+          if (below) {
+            note = (HONORS_LINE - val) + (HONORS_LINE - val === 1 ? " pt" : " pts") + " below the honors line" +
+              (tw ? " — " + tw.topic + " is the topic to close." : ".");
+          } else {
+            note = "Above the line" + (tw ? " — " + tw.topic + " is the one to watch." : ".");
+          }
+          html += '<div class="honors-row"><div class="honors-head">' +
+            '<span class="honors-name">' + icon + " " + esc(gradeDisplayName(g)) + ' <span class="honors-term">' + esc(termLabel) + '</span></span>' +
+            '<span class="honors-grade ' + (below ? "below" : "above") + '">' + esc(val) + '</span></div>' +
+            '<div class="honors-track"><div class="honors-fill ' + (below ? "below" : "") + '" style="width:' + Math.max(0, Math.min(100, val)) + '%"></div>' +
+            '<div class="honors-tick" style="left:' + HONORS_LINE + '%"></div>' +
+            '<span class="honors-tick-label" style="left:' + HONORS_LINE + '%">85 line</span></div>' +
+            '<p class="honors-note ' + (below ? "below" : "above") + '">' + esc(note) + '</p></div>';
+        });
+        html += "</div>";
+        el.innerHTML = html;
+      }
+
+      /* ----- Overview: needs attention ----- */
+      function renderAttention() {
+        var el = document.getElementById("ov-attention");
+        if (!el || renderedOnce.attention) return;
+        var keys = ["units", "mastery", "topics", "quizzes", "quizItems", "weak", "answers", "hwF", "hwC", "hwCR"];
+        if (!needsSettled(keys)) { el.innerHTML = loadingCard(); return; }
+        renderedOnce.attention = true;
+        var units = got("units"), mastery = got("mastery"), topics = got("topics"),
+            quizzes = got("quizzes"), quizItems = got("quizItems"), weak = got("weak"),
+            answers = got("answers"), hwF = got("hwF"), hwC = got("hwC"), hwCR = got("hwCR");
         var unitById = {};
-        units.forEach(function (u) { unitById[u.id] = u; });
-        function where(unitId) {
-          var u = unitById[unitId];
-          if (!u) return "";
-          return subjectLabel(u.subject) + " · " + u.title;
+        (units || []).forEach(function (u) { unitById[u.id] = u; });
+        var flags = [];
+
+        /* (a) Mastered in the app, contradicted by a real quiz < 70%. */
+        if (mastery && quizzes) {
+          mastery.filter(function (m) { return m.state === "mastered"; }).forEach(function (m) {
+            var hit = contradictingQuiz(m.unit_id, units || [], topics || [], weak || [], quizzes, quizItems || []);
+            if (!hit) return;
+            var u = unitById[m.unit_id];
+            flags.push({
+              prio: 1, tag: "App vs real quiz", tagClass: "tag-real",
+              topic: (u ? u.title : m.unit_id) + " is “Mastered” in the app",
+              nums: "But the real " + hit.quiz.title + " scored " + hit.quiz.score + "/" + hit.quiz.total +
+                " (" + hit.pct + "%) — it isn't transferring to tests yet."
+            });
+          });
         }
-
-        renderAttention(topics, unitById);
-        renderMastery(units, mastery);
-        renderTopics(units, topics);
-        renderActivity(daily);
-        renderDayByDay(daily, attempts, unitById);
-        renderSessions(attempts, unitById);
-      }).catch(function () {
-        loadingEl.classList.add("hidden");
-        errorEl.classList.remove("hidden");
-      });
-
-      function renderAttention(topics, unitById) {
-        var card = document.getElementById("attention-card");
-        var flagged = [];
-        topics.forEach(function (t) {
-          var acc = t.answers_sure ? t.correct_sure / t.answers_sure : null;
-          if (t.confident_wrong > 0) {
-            flagged.push({ t: t, kind: "cw", acc: acc });
-          } else if (t.answers_sure >= 3 && acc !== null && acc < 0.7) {
-            flagged.push({ t: t, kind: "weak", acc: acc });
+        /* (b) Confident-but-wrong in the last 7 days. */
+        if (answers) {
+          var cutoff = addDaysKey(nyKey(new Date()), -6);
+          var cw = answers.filter(function (a) {
+            var k = dayKeyOf(a.created_at);
+            return a.confidence === "sure" && a.correct === false && k !== null && k >= cutoff;
+          });
+          if (cw.length >= 3) {
+            var byTopic = {};
+            cw.forEach(function (a) { if (a.topic) byTopic[a.topic] = (byTopic[a.topic] || 0) + 1; });
+            var topTopic = null, topN = 0;
+            Object.keys(byTopic).forEach(function (t) { if (byTopic[t] > topN) { topN = byTopic[t]; topTopic = t; } });
+            flags.push({
+              prio: 2, tag: "Confident & wrong", tagClass: "tag-cw",
+              topic: "“I know this” but wrong ×" + cw.length + " this week",
+              nums: "She marked “I know this” and missed " + cw.length + " times in the last 7 days" +
+                (topTopic ? " — most often on " + topTopic + "." : ".")
+            });
           }
+        }
+        /* (d) Latest homework: items still not fixed by a correction. */
+        if (hwF && hwF.length) {
+          var threadIndex = buildThreadIndex(hwC || [], hwCR || []);
+          var latest = hwF[0];
+          var items = normalizeItems(latest);
+          var unfixed = items.filter(function (it) {
+            if (it.verdict !== "worth_a_look" && it.verdict !== "needs_retake") return false;
+            var th = threadIndex[threadKey(latest.id, it.problem)];
+            return !(th && th.fixed);
+          });
+          unfixed.slice(0, 2).forEach(function (it) {
+            flags.push({
+              prio: 3, tag: "Homework", tagClass: "tag-hw",
+              topic: it.problem + " — still to fix",
+              nums: "From the latest homework check (" + formatTimeNY(latest.created_at) + "): " + (it.note || it.rule || "Worth another look.")
+            });
+          });
+        }
+        /* (c) Top weak topics from real schoolwork. */
+        if (weak) {
+          weak.slice(0, 2).forEach(function (w) {
+            flags.push({
+              prio: 4, tag: "Weak topic", tagClass: "tag-weak",
+              topic: w.topic,
+              nums: (w.detail || "") + (w.source ? " (" + w.source + ")" : "")
+            });
+          });
+        }
+        flags.sort(function (a, b) { return a.prio - b.prio; });
+        flags = flags.slice(0, 4);
+        var html = '<div class="card"><h3>' + (flags.length ? flags.length + (flags.length === 1 ? " thing needs" : " things need") + " attention" : "Needs attention") + "</h3>";
+        if (!flags.length) {
+          html += '<p class="quiet">Nothing flagged right now — no app-vs-real gaps, no uncorrected homework, no weak topics.</p>';
+        } else {
+          html += flags.map(function (f) {
+            return '<div class="flag-row"><span class="tag ' + f.tagClass + '">' + esc(f.tag) + '</span>' +
+              '<span class="flag-topic">' + esc(f.topic) + '</span>' +
+              '<span class="flag-nums">' + esc(f.nums) + '</span></div>';
+          }).join("");
+        }
+        html += "</div>";
+        el.innerHTML = html;
+      }
+
+      /* ----- Overview: coming up -----
+         Announced quizzes/tests/assignments with concrete dates,
+         written by the study crons into study_assessments as their
+         Classroom scans find them. Window: today through today+14
+         (New York days); the date filter ages old rows out, so
+         nothing ever needs deleting. */
+      var KIND_META = {
+        quiz: ["Quiz", "tag-kind-quiz"],
+        test: ["Test", "tag-kind-test"],
+        assignment: ["Assignment", "tag-kind-assignment"],
+        other: ["Other", "tag-kind-other"]
+      };
+      function renderComing() {
+        var el = document.getElementById("ov-coming");
+        if (!el || renderedOnce.coming) return;
+        if (!needsSettled(["assess"])) { el.innerHTML = loadingCard(); return; }
+        renderedOnce.coming = true;
+        var rows = got("assess");
+        if (!rows) { el.innerHTML = unavailableCard("Coming up"); return; }
+        var today = nyKey(new Date());
+        var lastDay = addDaysKey(today, 14);
+        var items = rows.filter(function (r) {
+          if (!r) return false;
+          var k = String(r.due_date || "").slice(0, 10);
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return false;
+          return k >= today && k <= lastDay;
+        }).sort(function (a, b) {
+          var ka = String(a.due_date).slice(0, 10), kb = String(b.due_date).slice(0, 10);
+          if (ka !== kb) return ka < kb ? -1 : 1;
+          var sa = String(a.subject || ""), sb = String(b.subject || "");
+          if (sa !== sb) return sa < sb ? -1 : 1;
+          return String(a.title || "") < String(b.title || "") ? -1 : 1;
         });
-        flagged.sort(function (a, b) {
-          if (a.kind !== b.kind) return a.kind === "cw" ? -1 : 1;
-          if (a.kind === "cw" && b.t.confident_wrong !== a.t.confident_wrong) {
-            return b.t.confident_wrong - a.t.confident_wrong;
-          }
-          var aa = a.acc === null ? 1 : a.acc, bb = b.acc === null ? 1 : b.acc;
-          return aa - bb;
+        var html = '<div class="card"><h3>Coming up</h3>';
+        if (!items.length) {
+          html += '<p class="quiet">Nothing announced for the next two weeks.</p>';
+        } else {
+          html += items.map(function (r) {
+            var meta = KIND_META[r.kind] || KIND_META.other;
+            var dueKey = String(r.due_date).slice(0, 10);
+            var what = gradeIcon(r.subject)[0] + " " + esc(r.subject || "") + " — " + esc(r.title || "");
+            return '<div class="coming-row"><div class="coming-main">' +
+              '<span class="tag ' + meta[1] + '">' + meta[0] + "</span>" +
+              '<span class="coming-what">' + what + "</span>" +
+              (r.topic ? '<span class="coming-topic">' + esc(r.topic) + "</span>" : "") +
+              '</div><span class="coming-date">' + esc(formatDayLabel(dueKey)) + "</span></div>";
+          }).join("");
+        }
+        html += "</div>";
+        el.innerHTML = html;
+      }
+
+      /* ----- homework shared builders (mirror the student app) ----- */
+      function verdictLabel(v) {
+        if (v === "correct") return "Looks right";
+        if (v === "needs_retake") return "Couldn't read this one";
+        return "Worth another look";
+      }
+      function verdictClass(v) {
+        if (v === "correct" || v === "needs_retake") return v;
+        return "worth_a_look";
+      }
+      function correctionLabel(v) {
+        if (v === "fixed") return "Fixed ✓";
+        if (v === "needs_retake") return "Couldn't read it";
+        return "Still worth a look";
+      }
+      function correctionClass(v) {
+        if (v === "fixed") return "correct";
+        if (v === "needs_retake") return "needs_retake";
+        return "worth_a_look";
+      }
+      function normalizeItems(feedback) {
+        var items = [];
+        if (feedback && feedback.items instanceof Array) {
+          items = feedback.items.map(function (item) {
+            item = item || {};
+            return {
+              problem: typeof item.problem === "string" && item.problem ? item.problem : "Problem",
+              verdict: typeof item.verdict === "string" ? item.verdict : "worth_a_look",
+              note: typeof item.note === "string" ? item.note : "",
+              rule: typeof item.rule === "string" ? item.rule : ""
+            };
+          });
+        }
+        return items;
+      }
+      function itemCounts(items) {
+        var right = 0, worth = 0, retake = 0;
+        (items || []).forEach(function (item) {
+          if (item.verdict === "correct") right++;
+          else if (item.verdict === "needs_retake") retake++;
+          else worth++;
         });
-        if (!flagged.length) {
-          card.innerHTML = '<p class="quiet">Nothing flagged — no confident-and-wrong topics and no weak topics yet.</p>';
+        return { right: right, worth: worth, retake: retake };
+      }
+      function threadKey(feedbackId, problem) {
+        return String(feedbackId) + "|" + String(problem);
+      }
+      function buildThreadIndex(corrections, results) {
+        var index = {};
+        var resultByCorrection = {};
+        (results || []).forEach(function (r) { if (r && r.correction_id) resultByCorrection[String(r.correction_id)] = r; });
+        (corrections || []).slice().sort(function (a, b) {
+          return String((a && a.created_at) || "").localeCompare(String((b && b.created_at) || ""));
+        }).forEach(function (c) {
+          if (!c || c.feedback_id === null || typeof c.feedback_id === "undefined" || !c.problem_label) return;
+          var key = threadKey(c.feedback_id, c.problem_label);
+          var entry = index[key] || (index[key] = { attempts: [], fixed: false, pending: false });
+          var result = resultByCorrection[String(c.id)] || null;
+          entry.attempts.push({ correction: c, result: result });
+          if (result && result.verdict === "fixed") entry.fixed = true;
+          if (!result) entry.pending = true;
+        });
+        return index;
+      }
+
+      /* ----- Grades: course table ----- */
+      function renderGradeCourses() {
+        var el = document.getElementById("gr-courses");
+        if (!el || renderedOnce.grCourses) return;
+        if (!needsSettled(["grades"])) { el.innerHTML = loadingCard(); return; }
+        renderedOnce.grCourses = true;
+        var grades = got("grades");
+        if (!grades) { el.innerHTML = unavailableCard("Course grades"); return; }
+        if (!grades.length) {
+          el.innerHTML = '<div class="card"><h3>Course grades</h3><p class="quiet">No grades recorded yet.</p></div>';
           return;
         }
-        card.innerHTML = flagged.map(function (f) {
-          var t = f.t;
-          var tag = f.kind === "cw"
-            ? '<span class="tag tag-cw">Confident &amp; wrong</span>'
-            : '<span class="tag tag-weak">Weak so far</span>';
-          var nums = [];
-          if (t.confident_wrong > 0) {
-            nums.push('<span class="cw-num">' + t.confident_wrong + " confident-wrong</span>");
+        var terms = [];
+        grades.forEach(function (g) { if (terms.indexOf(g.term) === -1) terms.push(g.term); });
+        terms.sort();
+        var current = terms[terms.length - 1];
+        var subjectOrder = ["Science", "Math", "ELA", "Social Studies", "French"];
+        var bySubject = {};
+        grades.forEach(function (g) { (bySubject[g.subject] = bySubject[g.subject] || []).push(g); });
+        var subjects = Object.keys(bySubject).sort(function (a, b) {
+          var ia = subjectOrder.indexOf(a), ib = subjectOrder.indexOf(b);
+          return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        });
+        var pick = honorsPick(grades);
+        var watchBySubject = {};
+        pick.rows.forEach(function (r) { watchBySubject[r.subject] = r; });
+        var maxRecorded = null;
+        grades.forEach(function (g) { if (g.recorded_at && (!maxRecorded || g.recorded_at > maxRecorded)) maxRecorded = g.recorded_at; });
+
+        var html = '<div class="card"><h3>Course grades</h3><div class="grade-cols"><span class="gc-name">Course</span>' +
+          terms.map(function (t) {
+            return '<span class="gc-term">' + esc(t) + (t === current ? " so far" : " final") + "</span>";
+          }).join("") + "</div>";
+        subjects.forEach(function (subject) {
+          var rows = bySubject[subject];
+          var sample = rows[0];
+          var icon = gradeIcon(subject);
+          var flag = "";
+          var watch = watchBySubject[subject];
+          if (sample.is_honors && watch) {
+            var val = Number(watch.grade_pct);
+            if (val < HONORS_LINE) flag = '<span class="grade-flag below">▼ ' + (HONORS_LINE - val) + " below the 85 line</span>";
+            else flag = '<span class="grade-flag above">▲ above the 85 line</span>';
           }
-          if (t.answers_sure > 0) {
-            nums.push(t.correct_sure + "/" + t.answers_sure + " sure correct (" + pct(t.correct_sure, t.answers_sure) + "%)");
-          }
-          return '<div class="flag-row">' + tag +
-            '<span class="flag-where">' + esc(where2(t.unit_id, unitById)) + "</span>" +
-            '<span class="flag-topic">' + esc(t.topic) + "</span>" +
-            '<span class="flag-nums">' + nums.join(" · ") + "</span></div>";
-        }).join("");
-      }
-      function where2(unitId, unitById) {
-        var u = unitById[unitId];
-        if (!u) return "";
-        return subjectLabel(u.subject) + " · " + u.title;
+          html += '<div class="grade-row"><span class="grade-ico ' + icon[1] + '">' + icon[0] + '</span>' +
+            '<span class="grade-main"><span class="grade-name">' + esc(gradeDisplayName(sample)) + "</span>" +
+            (flag ? "<br>" + flag : "") + "</span>";
+          terms.forEach(function (t) {
+            var row = null;
+            rows.forEach(function (r) { if (r.term === t) row = r; });
+            if (row) html += '<span class="grade-val">' + esc(Number(row.grade_pct)) + "</span>";
+            else html += '<span class="grade-val empty">—</span>';
+          });
+          html += "</div>";
+        });
+        html += '<p class="grades-foot">' + esc(current) + " is in progress — a dash means nothing graded yet." +
+          (maxRecorded ? " Grades last synced " + esc(formatTimeNY(maxRecorded)) + "." : "") + "</p></div>";
+        el.innerHTML = html;
       }
 
-      function renderMastery(units, mastery) {
-        var list = document.getElementById("mastery-list");
+      /* ----- Grades: real test & quiz log ----- */
+      var openQuizzes = {};
+      function renderGradeQuizzes() {
+        var el = document.getElementById("gr-quizzes");
+        if (!el || renderedOnce.grQuizzes) return;
+        if (!needsSettled(["quizzes", "quizItems", "weak", "grades"])) { el.innerHTML = loadingCard(); return; }
+        renderedOnce.grQuizzes = true;
+        var quizzes = got("quizzes");
+        if (!quizzes) { el.innerHTML = unavailableCard("Real tests & quizzes"); return; }
+        var quizItems = got("quizItems") || [];
+        var weak = got("weak") || [];
+        var grades = got("grades") || [];
+        var courseBySubject = {};
+        grades.forEach(function (g) { courseBySubject[g.subject] = gradeDisplayName(g); });
+        var html = '<h3 class="sect-head">Real tests &amp; quizzes — tap to see where points went</h3>';
+        if (!quizzes.length) {
+          html += '<div class="card"><p class="quiet">No graded tests or quizzes recorded yet.</p></div>';
+          el.innerHTML = html;
+          return;
+        }
+        quizzes.forEach(function (q) {
+          var p = pctOf(q.score, q.total);
+          var pClass = p === null ? "" : (p >= 85 ? "good" : (p >= 70 ? "mid" : "low"));
+          var items = quizItems.filter(function (it) { return it.quiz_id === q.id; });
+          var detail;
+          if (items.length) {
+            detail = items.map(function (it) {
+              var mark = it.is_correct
+                ? '<span class="qi-mark ok">✓</span>'
+                : '<span class="qi-mark no">✗</span>';
+              var a = "";
+              if (it.her_answer) a += "<div class=\"qi-a\">Hers: <b>" + esc(it.her_answer) + "</b></div>";
+              if (it.correct_answer && !it.is_correct) a += "<div class=\"qi-a\">Answer: <b>" + esc(it.correct_answer) + "</b></div>";
+              return '<div class="qi-row">' + mark + '<div class="qi-main">' +
+                '<div class="qi-q">' + esc(it.question_text || "") + "</div>" + a +
+                (it.topic ? '<span class="qi-topic">' + esc(it.topic) + "</span>" : "") + "</div></div>";
+            }).join("");
+          } else {
+            var citing = weak.filter(function (w) { return w.source && String(w.source).indexOf(q.title) !== -1; });
+            if (citing.length) {
+              detail = '<p class="quiz-agg">Where the points went, from the recorded breakdown:</p><ul class="quiz-agg">' +
+                citing.map(function (w) { return "<li><b>" + esc(w.topic) + ":</b> " + esc(w.detail || "") + "</li>"; }).join("") + "</ul>";
+            } else {
+              detail = '<p class="quiz-agg">No per-question breakdown on file for this one — the score was recorded from the graded paper.</p>';
+            }
+          }
+          var open = !!openQuizzes[q.id];
+          html += '<div class="quiz-card' + (open ? " open" : "") + '" data-quiz-card="' + q.id + '">' +
+            '<button class="quiz-head" type="button" data-quiz-toggle="' + q.id + '" aria-expanded="' + open + '">' +
+            '<span class="quiz-head-main"><span class="quiz-title">' + esc(q.title) + '</span>' +
+            '<span class="quiz-meta">' + esc(courseBySubject[q.subject] || q.subject || "") + " · " + esc(formatQuizDate(q.quiz_date)) + '</span></span>' +
+            '<span class="quiz-score"><span class="qs-num">' + q.score + "/" + q.total + '</span>' +
+            (p === null ? "" : '<span class="qs-pct ' + pClass + '">' + p + "%</span>") + '</span>' +
+            '<span class="quiz-chev">▾</span></button>' +
+            '<div class="quiz-detail"' + (open ? "" : " hidden") + ">" + detail + "</div></div>";
+        });
+        el.innerHTML = html;
+        el.querySelectorAll("[data-quiz-toggle]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var id = btn.getAttribute("data-quiz-toggle");
+            var card = btn.closest(".quiz-card");
+            var detail = card.querySelector(".quiz-detail");
+            var nowOpen = detail.hidden;
+            detail.hidden = !nowOpen;
+            card.classList.toggle("open", nowOpen);
+            btn.setAttribute("aria-expanded", String(nowOpen));
+            if (nowOpen) openQuizzes[id] = true; else delete openQuizzes[id];
+          });
+        });
+      }
+
+      /* ----- Practice: mastery by unit ----- */
+      function masteryStats(m) {
+        var parts = [];
+        parts.push(m.answers + (m.answers === 1 ? " sure answer" : " sure answers"));
+        var p = pctOf(m.correct, m.answers);
+        parts.push(p === null ? "— correct" : p + "% correct");
+        parts.push(m.days + " of 2+ days");
+        var s = parts.join(" · ");
+        if (m.confident_wrong > 0) s += ' · <span class="cw">' + m.confident_wrong + " confident-wrong</span>";
+        return s;
+      }
+      function renderPracticeMastery() {
+        var el = document.getElementById("pr-mastery");
+        if (!el || renderedOnce.prMastery) return;
+        var keys = ["units", "mastery", "quizzes", "quizItems", "weak", "topics"];
+        if (!needsSettled(keys)) { el.innerHTML = loadingCard(); return; }
+        renderedOnce.prMastery = true;
+        var units = got("units"), mastery = got("mastery");
+        if (!units || !mastery) { el.innerHTML = unavailableCard("Mastery by unit"); return; }
+        var quizzes = got("quizzes") || [], quizItems = got("quizItems") || [],
+            weak = got("weak") || [], topics = got("topics") || [];
         var byUnit = {};
         mastery.forEach(function (m) { byUnit[m.unit_id] = m; });
-        list.innerHTML = units.map(function (u) {
+        var html = '<h3 class="sect-head">Mastery by unit</h3>';
+        if (!units.length) {
+          html += '<div class="card"><p class="quiet">No units yet.</p></div>';
+          el.innerHTML = html;
+          return;
+        }
+        html += units.map(function (u) {
           var m = byUnit[u.id];
           var chip, stats;
           if (!m) {
@@ -438,36 +1133,100 @@
             chip = '<span class="chip chip-learning">Learning</span>';
             stats = masteryStats(m);
           }
+          var warn = "";
+          if (m && m.state === "mastered" && quizzes.length) {
+            var hit = contradictingQuiz(u.id, units, topics, weak, quizzes, quizItems);
+            if (hit) {
+              warn = '<p class="unit-warn">⚠ ' + esc(hit.quiz.title) + " " + hit.quiz.score + "/" + hit.quiz.total + " — real quiz disagrees</p>";
+            }
+          }
           return '<div class="card"><div class="unit-head"><span class="unit-title">' +
-            '<span class="unit-subject">' + esc(subjectLabel(u.subject)) + "</span>" +
-            esc(u.title) + "</span>" + chip + "</div>" +
-            '<p class="unit-stats">' + stats + "</p></div>";
+            '<span class="unit-subject">' + esc(subjectLabel(u.subject)) + "</span>" + esc(u.title) + "</span>" + chip + "</div>" +
+            '<p class="unit-stats">' + stats + "</p>" + warn + "</div>";
         }).join("");
-      }
-      function masteryStats(m) {
-        var parts = [];
-        parts.push(m.answers + (m.answers === 1 ? " sure answer" : " sure answers"));
-        var p = pct(m.correct, m.answers);
-        parts.push(p === null ? "— correct" : p + "% correct");
-        parts.push(m.days + " of 2+ days");
-        var s = parts.join(" · ");
-        if (m.confident_wrong > 0) {
-          s += ' · <span class="cw">' + m.confident_wrong + " confident-wrong</span>";
-        }
-        return s;
+        el.innerHTML = html;
       }
 
-      function renderTopics(units, topics) {
-        var card = document.getElementById("topic-card");
+      /* ----- Practice: weak topics ----- */
+      function renderPracticeWeak() {
+        var el = document.getElementById("pr-weak");
+        if (!el || renderedOnce.prWeak) return;
+        if (!needsSettled(["weak"])) { el.innerHTML = loadingCard(); return; }
+        renderedOnce.prWeak = true;
+        var weak = got("weak");
+        if (!weak) { el.innerHTML = unavailableCard("Weak topics"); return; }
+        var html = '<div class="card"><h3>Weak topics</h3><p class="card-sub">From real tests and homework — these steer what she practices next.</p>';
+        if (!weak.length) {
+          html += '<p class="quiet">Nothing on file — no real-test or homework weakness is flagged right now.</p>';
+        } else {
+          html += weak.map(function (w) {
+            var weight = Math.max(0, Math.min(100, Number(w.weight) || 0));
+            return '<div class="weak-row"><div class="weak-main">' +
+              '<span class="weak-topic">' + esc(w.topic) + '</span>' +
+              (w.detail ? '<div class="weak-detail">' + esc(w.detail) + "</div>" : "") +
+              (w.source ? '<div class="weak-source">' + esc(w.source) + "</div>" : "") +
+              '</div><div class="weak-meter"><span class="wm-num">' + weight + '</span>' +
+              '<div class="wm-track"><div class="wm-fill" style="width:' + weight + '%"></div></div></div></div>';
+          }).join("");
+        }
+        html += "</div>";
+        el.innerHTML = html;
+      }
+
+      /* ----- Practice: confidence card ----- */
+      function renderConfidence() {
+        var el = document.getElementById("pr-confidence");
+        if (!el || renderedOnce.confidence) return;
+        if (!needsSettled(["answers"])) { el.innerHTML = loadingCard(); return; }
+        renderedOnce.confidence = true;
+        var answers = got("answers");
+        if (!answers) { el.innerHTML = unavailableCard("Confidence"); return; }
+        var since = "2026-11-09"; /* start of Q2 */
+        var rows = answers.filter(function (a) {
+          var k = dayKeyOf(a.created_at);
+          return k !== null && k >= since;
+        });
+        var total = rows.length;
+        var sure = rows.filter(function (a) { return a.confidence === "sure"; });
+        var guessing = rows.filter(function (a) { return a.confidence === "guessing"; });
+        var sureWrong = sure.filter(function (a) { return a.correct === false; });
+        var surePct = total ? Math.round((sure.length / total) * 100) : null;
+        var sureWrongPct = sure.length ? Math.round((sureWrong.length / sure.length) * 100) : null;
+        var html = '<div class="card"><h3>Confidence</h3>' +
+          '<p class="card-sub">Every answer asks “I know this” or “I\'m guessing” first. Since Nov 9 (start of Q2):</p>';
+        if (!total) {
+          html += '<p class="quiet">No answers recorded in Q2 yet.</p>';
+        } else {
+          html += '<div class="stat-grid">' +
+            '<div class="stat"><div class="num">' + total + '</div><div class="lbl">answers</div></div>' +
+            '<div class="stat"><div class="num">' + (surePct === null ? "—" : surePct + "%") + '</div><div class="lbl">marked “I know this”</div></div>' +
+            '<div class="stat"><div class="num' + (sureWrongPct !== null && sureWrongPct >= 20 ? " bad" : "") + '">' + (sureWrongPct === null ? "—" : sureWrongPct + "%") + '</div><div class="lbl">of those were wrong</div></div>' +
+            '<div class="stat"><div class="num">' + guessing.length + '</div><div class="lbl">marked “I\'m guessing”</div></div></div>' +
+            '<p class="card-sub" style="margin:10px 0 0;">' +
+            (sureWrongPct !== null && sureWrongPct >= 20
+              ? "Confidence is running ahead of accuracy right now — the fix-it rounds in the app target exactly this."
+              : "Her confidence taps are lining up with her results.") + "</p>";
+        }
+        html += "</div>";
+        el.innerHTML = html;
+      }
+
+      /* ----- Practice: topic detail (condensed, as the old view) ----- */
+      function renderTopicDetail() {
+        var el = document.getElementById("pr-topics");
+        if (!el || renderedOnce.prTopics) return;
+        if (!needsSettled(["units", "topics"])) { el.innerHTML = loadingCard(); return; }
+        renderedOnce.prTopics = true;
+        var units = got("units"), topics = got("topics");
+        if (!units || !topics) { el.innerHTML = unavailableCard("Topic detail"); return; }
+        var html = '<div class="card"><h3>Topic detail</h3>';
         if (!topics.length) {
-          card.innerHTML = '<p class="quiet">No topic data yet.</p>';
+          html += '<p class="quiet">No topic data yet.</p></div>';
+          el.innerHTML = html;
           return;
         }
         var byUnit = {};
-        topics.forEach(function (t) {
-          (byUnit[t.unit_id] = byUnit[t.unit_id] || []).push(t);
-        });
-        // Group units by subject, preserving study_units order.
+        topics.forEach(function (t) { (byUnit[t.unit_id] = byUnit[t.unit_id] || []).push(t); });
         var subjectOrder = [];
         var unitsBySubject = {};
         units.forEach(function (u) {
@@ -475,230 +1234,363 @@
           if (!unitsBySubject[u.subject]) { unitsBySubject[u.subject] = []; subjectOrder.push(u.subject); }
           unitsBySubject[u.subject].push(u);
         });
-        // Any topics for units not in study_units go last under their raw id.
         var known = {};
         units.forEach(function (u) { known[u.id] = true; });
-        var orphanUnits = Object.keys(byUnit).filter(function (id) { return !known[id]; });
+        var orphans = Object.keys(byUnit).filter(function (id) { return !known[id]; });
 
-        var html = "";
+        function topicUnitHtml(title, rows) {
+          var sorted = rows.slice().sort(function (a, b) {
+            if (b.confident_wrong !== a.confident_wrong) return b.confident_wrong - a.confident_wrong;
+            var aa = a.answers_sure ? a.correct_sure / a.answers_sure : 2;
+            var bb = b.answers_sure ? b.correct_sure / b.answers_sure : 2;
+            if (aa !== bb) return aa - bb;
+            return String(a.topic).localeCompare(String(b.topic));
+          });
+          var flagged = sorted.filter(function (t) {
+            return t.confident_wrong > 0 || (t.answers_sure >= 3 && t.correct_sure / t.answers_sure < 0.7);
+          }).length;
+          var out = '<details class="topic-unit"' + (flagged ? " open" : "") + "><summary>" + esc(title) +
+            (flagged ? '<span class="tu-flag">' + flagged + " flagged</span>" : "") + "</summary>";
+          out += sorted.map(function (t) {
+            var name = esc(t.topic) + (t.confident_wrong > 0 ? ' <span class="warn-mark" title="Confident and wrong">⚠</span>' : "");
+            var nums;
+            if (t.answers_sure > 0) {
+              nums = '<span class="acc">' + pctOf(t.correct_sure, t.answers_sure) + '% sure</span> · ' +
+                t.correct_sure + "/" + t.answers_sure + " sure";
+              if (t.answers_guessed > 0) nums += " · " + t.answers_guessed + " guessed";
+              if (t.confident_wrong > 0) nums += ' · <span class="cw-num">' + t.confident_wrong + " confident-wrong</span>";
+            } else if (t.answers_guessed > 0) {
+              nums = "only guessed so far · " + t.answers_guessed + " guessed";
+            } else {
+              nums = "no answers yet";
+            }
+            return '<div class="topic-row"><span class="topic-name">' + name + '</span><span class="topic-nums">' + nums + "</span></div>";
+          }).join("");
+          return out + "</details>";
+        }
+
         subjectOrder.forEach(function (subject) {
           html += '<div class="topic-group-subject">' + esc(subjectLabel(subject)) + "</div>";
-          unitsBySubject[subject].forEach(function (u) {
-            html += topicUnitHtml(u.title, byUnit[u.id]);
-          });
+          unitsBySubject[subject].forEach(function (u) { html += topicUnitHtml(u.title, byUnit[u.id]); });
         });
-        orphanUnits.forEach(function (id) {
-          html += topicUnitHtml(id, byUnit[id]);
-        });
-        card.innerHTML = html;
-      }
-      function topicUnitHtml(title, rows) {
-        var sorted = rows.slice().sort(function (a, b) {
-          if (b.confident_wrong !== a.confident_wrong) return b.confident_wrong - a.confident_wrong;
-          var aa = a.answers_sure ? a.correct_sure / a.answers_sure : 2;
-          var bb = b.answers_sure ? b.correct_sure / b.answers_sure : 2;
-          if (aa !== bb) return aa - bb;
-          return String(a.topic).localeCompare(String(b.topic));
-        });
-        var html = '<div class="topic-unit">' + esc(title) + "</div>";
-        html += sorted.map(function (t) {
-          var name = esc(t.topic) + (t.confident_wrong > 0 ? ' <span class="warn-mark" title="Confident and wrong">⚠</span>' : "");
-          var nums;
-          if (t.answers_sure > 0) {
-            nums = '<span class="acc">' + pct(t.correct_sure, t.answers_sure) + "% sure</span> · " +
-              t.correct_sure + "/" + t.answers_sure + " sure";
-            if (t.answers_guessed > 0) nums += " · " + t.answers_guessed + " guessed";
-            if (t.confident_wrong > 0) nums += ' · <span class="cw-num">' + t.confident_wrong + " confident-wrong</span>";
-          } else if (t.answers_guessed > 0) {
-            nums = "only guessed so far · " + t.answers_guessed + " guessed";
-          } else {
-            nums = "no answers yet";
-          }
-          return '<div class="topic-row"><span class="topic-name">' + name + '</span><span class="topic-nums">' + nums + "</span></div>";
-        }).join("");
-        return html;
+        orphans.forEach(function (id) { html += topicUnitHtml(id, byUnit[id]); });
+        html += "</div>";
+        el.innerHTML = html;
       }
 
-      function renderActivity(daily) {
-        var strip = document.getElementById("activity-strip");
-        var byDay = {};
-        daily.forEach(function (d) { byDay[d.day] = d; });
-        var days = [];
-        var today = new Date();
-        today.setHours(0, 0, 0, 0);
-        for (var i = 13; i >= 0; i--) {
-          var d = new Date(today.getTime() - i * 86400000);
-          var key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-          days.push({ date: d, key: key, row: byDay[key] || null });
+      /* ----- Homework tab ----- */
+      var openHw = {};
+      function buildHwCards(assignments, uploads, feedbackRows) {
+        if (!(assignments instanceof Array)) assignments = [];
+        if (!(uploads instanceof Array)) uploads = [];
+        if (!(feedbackRows instanceof Array)) feedbackRows = [];
+        var feedbackByAssignment = {}, feedbackByUpload = {};
+        feedbackRows.forEach(function (row) {
+          if (!row) return;
+          if (row.assignment_id !== null && typeof row.assignment_id !== "undefined") {
+            var ka = String(row.assignment_id);
+            if (!feedbackByAssignment[ka]) feedbackByAssignment[ka] = row;
+          }
+          if (row.upload_id !== null && typeof row.upload_id !== "undefined") {
+            var ku = String(row.upload_id);
+            if (!feedbackByUpload[ku]) feedbackByUpload[ku] = row;
+          }
+        });
+        var pagesByAssignment = {};
+        uploads.forEach(function (u) {
+          if (!u || u.assignment_id === null || typeof u.assignment_id === "undefined") return;
+          var k = String(u.assignment_id);
+          (pagesByAssignment[k] = pagesByAssignment[k] || []).push(u);
+        });
+        Object.keys(pagesByAssignment).forEach(function (k) {
+          pagesByAssignment[k].sort(function (a, b) {
+            return String(a.created_at || "").localeCompare(String(b.created_at || ""));
+          });
+        });
+        var cards = [];
+        assignments.slice(0, 10).forEach(function (a) {
+          a = a || {};
+          var pages = pagesByAssignment[String(a.id)] || [];
+          var feedback = feedbackByAssignment[String(a.id)] || null;
+          if (!feedback && pages.length) feedback = feedbackByUpload[String(pages[0].id)] || null;
+          cards.push(makeHwCard(a.id, a.subject, pages.length, a.created_at, a.status, feedback));
+        });
+        uploads.filter(function (u) { return u && (u.assignment_id === null || typeof u.assignment_id === "undefined"); })
+          .slice(0, 10).forEach(function (u) {
+            cards.push(makeHwCard("legacy-" + u.id, u.subject, 1, u.created_at, u.status, feedbackByUpload[String(u.id)] || null));
+          });
+        cards.sort(function (x, y) { return String(y.created_at || "").localeCompare(String(x.created_at || "")); });
+        return cards;
+      }
+      function makeHwCard(key, subject, pageCount, createdAt, status, feedback) {
+        var items = normalizeItems(feedback);
+        var counts = itemCounts(items);
+        var subj = typeof subject === "string" && subject ? subject : "Homework";
+        var pages = typeof pageCount === "number" && pageCount > 0 ? pageCount : 1;
+        var line = subj + " · " + pages + (pages === 1 ? " page" : " pages");
+        if (feedback) {
+          line += " · " + items.length + (items.length === 1 ? " problem" : " problems") +
+            ' · <span class="ok-n">' + counts.right + ' look right</span>' +
+            ' · <span class="warn-n">' + counts.worth + ' worth another look</span>';
+          if (counts.retake > 0) line += ' · <span class="bad-n">' + counts.retake + " couldn't read</span>";
         }
-        var max = 1;
-        days.forEach(function (x) { if (x.row && x.row.answers > max) max = x.row.answers; });
-        var totalAnswers = 0, activeDays = 0;
-        strip.innerHTML = days.map(function (x) {
-          var n = x.row ? x.row.answers : 0;
+        return {
+          key: String(key),
+          feedbackId: feedback && feedback.id !== null && typeof feedback.id !== "undefined" ? feedback.id : null,
+          subject: subj, pages: pages, created_at: createdAt || null,
+          status: typeof status === "string" ? status : "",
+          waiting: !feedback,
+          summary: feedback && typeof feedback.summary === "string" ? feedback.summary : "",
+          items: items, counts: counts, line: line
+        };
+      }
+      function hwDayGroup(createdAt) {
+        var k = dayKeyOf(createdAt);
+        if (!k) return "Earlier";
+        var today = nyKey(new Date());
+        if (k === today) return "Today";
+        if (k === addDaysKey(today, -1)) return "Yesterday";
+        return "Earlier";
+      }
+      function renderHomework() {
+        var el = document.getElementById("hw-list");
+        if (!el || renderedOnce.homework) return;
+        var keys = ["hwA", "hwU", "hwF", "hwC", "hwCR"];
+        if (!needsSettled(keys)) { el.innerHTML = loadingCard(); return; }
+        renderedOnce.homework = true;
+        var assignments = got("hwA"), uploads = got("hwU"), feedback = got("hwF");
+        if (!assignments || !uploads || !feedback) { el.innerHTML = unavailableCard("Homework checks"); return; }
+        var threadIndex = buildThreadIndex(got("hwC") || [], got("hwCR") || []);
+        var cards = buildHwCards(assignments, uploads, feedback);
+        if (!cards.length) {
+          el.innerHTML = '<div class="card"><p class="quiet">No homework checks yet — they will appear here once Emma sends a photo of her homework.</p></div>';
+          return;
+        }
+        var groups = { Today: [], Yesterday: [], Earlier: [] };
+        cards.forEach(function (c) { groups[hwDayGroup(c.created_at)].push(c); });
+        var today = nyKey(new Date());
+        var html = "";
+        [["Today", today], ["Yesterday", addDaysKey(today, -1)], ["Earlier", null]].forEach(function (pair) {
+          var label = pair[0], list = groups[label];
+          if (!list.length) return;
+          if (label === "Earlier") {
+            html += '<button class="hw-earlier-toggle" type="button" id="hw-earlier-toggle" aria-expanded="false">Earlier ▸</button>' +
+              '<div id="hw-earlier" hidden>' + list.map(function (c) { return hwCardHtml(c, threadIndex); }).join("") + "</div>";
+            return;
+          }
+          html += '<div class="hw-day-head"><span class="hw-day-name">' + label + '</span>' +
+            '<span class="hw-day-date">' + esc(formatDayFull(pair[1])) + "</span></div>" +
+            list.map(function (c) { return hwCardHtml(c, threadIndex); }).join("");
+        });
+        el.innerHTML = html;
+        el.querySelectorAll("[data-hw-toggle]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var card = btn.closest(".hw-card");
+            var detail = card.querySelector(".hw-detail");
+            var nowOpen = detail.hidden;
+            detail.hidden = !nowOpen;
+            card.classList.toggle("open", nowOpen);
+            btn.setAttribute("aria-expanded", String(nowOpen));
+            var key = btn.getAttribute("data-hw-toggle");
+            if (nowOpen) openHw[key] = true; else delete openHw[key];
+          });
+        });
+        var toggle = document.getElementById("hw-earlier-toggle");
+        if (toggle) {
+          toggle.addEventListener("click", function () {
+            var wrap = document.getElementById("hw-earlier");
+            var nowOpen = wrap.hidden;
+            wrap.hidden = !nowOpen;
+            toggle.textContent = nowOpen ? "Earlier ▾" : "Earlier ▸";
+            toggle.setAttribute("aria-expanded", String(nowOpen));
+          });
+        }
+      }
+      function hwCardHtml(card, threadIndex) {
+        var open = !!openHw[card.key];
+        var detail = "";
+        if (card.waiting) {
+          detail += '<p class="hw-waiting" style="display:block;">Waiting for its check…</p>';
+        }
+        if (card.summary) detail += '<p class="hw-summary">' + esc(card.summary) + "</p>";
+        card.items.forEach(function (item) {
+          var thread = card.feedbackId !== null ? threadIndex[threadKey(card.feedbackId, item.problem)] : null;
+          detail += '<div class="hw-item"><div class="hw-item-head">' +
+            '<span class="hw-problem">' + esc(item.problem) + "</span>" +
+            (thread && thread.fixed ? '<span class="hw-corrected">· Corrected ✓</span>' : "") +
+            '<span class="verdict ' + verdictClass(item.verdict) + '">' + esc(verdictLabel(item.verdict)) + "</span></div>";
+          if (item.note) detail += '<p class="hw-note">' + esc(item.note) + "</p>";
+          if (item.rule) detail += '<p class="hw-rule">' + esc(item.rule) + "</p>";
+          if (thread && thread.attempts.length) {
+            thread.attempts.forEach(function (attempt) {
+              detail += '<div class="hw-attempt"><div class="hw-attempt-head">' +
+                '<span class="hw-attempt-time">Correction · ' + esc(formatTimeNY(attempt.correction.created_at)) + "</span>";
+              if (attempt.result) {
+                detail += '<span class="verdict ' + correctionClass(attempt.result.verdict) + '">' + esc(correctionLabel(attempt.result.verdict)) + "</span>";
+              }
+              detail += "</div>";
+              if (attempt.result) {
+                if (attempt.result.note) detail += '<p class="hw-attempt-note">' + esc(attempt.result.note) + "</p>";
+              } else {
+                detail += '<p class="hw-checking">Correction sent — checking…</p>';
+              }
+              detail += "</div>";
+            });
+          }
+          detail += "</div>";
+        });
+        var expandable = card.items.length > 0 || card.summary || card.waiting;
+        return '<div class="hw-card' + (open ? " open" : "") + '" data-hw-key="' + esc(card.key) + '">' +
+          (expandable
+            ? '<button class="hw-head" type="button" data-hw-toggle="' + esc(card.key) + '" aria-expanded="' + open + '">' +
+              '<span class="hw-head-main"><span class="hw-title">' + card.line + "</span>" +
+              '</span><span class="hw-chev">▾</span></button>' +
+              '<div class="hw-detail"' + (open ? "" : " hidden") + ">" + detail + "</div>"
+            : '<div class="hw-head" style="cursor:default;"><span class="hw-head-main"><span class="hw-title">' + card.line + "</span></span></div>") +
+          "</div>";
+      }
+
+      /* ----- Activity tab ----- */
+      function renderActivity() {
+        var stripEl = document.getElementById("ac-strip");
+        var daysEl = document.getElementById("ac-days");
+        if (!stripEl || renderedOnce.activity) return;
+        if (!needsSettled(["daily", "attempts", "units"])) {
+          stripEl.innerHTML = loadingCard();
+          return;
+        }
+        renderedOnce.activity = true;
+        var daily = got("daily");
+        if (!daily) {
+          stripEl.innerHTML = unavailableCard("Activity");
+          daysEl.innerHTML = "";
+          return;
+        }
+        var attempts = got("attempts");
+        var units = got("units") || [];
+        var unitById = {};
+        units.forEach(function (u) { unitById[u.id] = u; });
+        var byDay = {};
+        daily.forEach(function (d) { byDay[String(d.day).slice(0, 10)] = d; });
+        var today = nyKey(new Date());
+        var keys = [];
+        for (var i = 13; i >= 0; i--) keys.push(addDaysKey(today, -i));
+
+        /* strip */
+        var max = 1, totalAnswers = 0, activeDays = 0;
+        keys.forEach(function (k) { var r = byDay[k]; if (r && r.answers > max) max = r.answers; });
+        var strip = keys.map(function (k) {
+          var r = byDay[k];
+          var n = r ? (r.answers || 0) : 0;
           totalAnswers += n;
           if (n > 0) activeDays++;
           var h = n > 0 ? Math.max(10, Math.round((n / max) * 62)) : 3;
-          var label = x.date.toLocaleDateString(undefined, { weekday: "narrow" });
-          var title = x.date.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ": " + n + (n === 1 ? " answer" : " answers");
-          return '<div class="col" title="' + esc(title) + '"><span class="day-count">' + (n > 0 ? n : "") + '</span>' +
+          var label = new Date(k + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "narrow" });
+          return '<div class="col"><span class="day-count">' + (n > 0 ? n : "") + '</span>' +
             '<div class="bar' + (n > 0 ? "" : " zero") + '" style="height:' + h + 'px"></div>' +
             '<span class="day-label">' + esc(label) + "</span></div>";
         }).join("");
-        document.getElementById("activity-total").textContent =
-          totalAnswers + (totalAnswers === 1 ? " answer" : " answers") + " across " +
-          activeDays + (activeDays === 1 ? " active day" : " active days") + " in the last 14 days.";
-      }
+        stripEl.innerHTML = '<div class="card"><h3>Last 14 days</h3><div class="strip">' + strip + "</div>" +
+          '<p class="quiet" style="margin-top:10px;">' + totalAnswers + (totalAnswers === 1 ? " answer" : " answers") +
+          " across " + activeDays + (activeDays === 1 ? " active day" : " active days") + " in the last 14 days.</p>" +
+          (attempts ? "" : '<p class="quiet" style="margin-top:6px;">Session detail is unavailable right now.</p>') + "</div>";
 
-      // --- Day by day helpers (America/New_York calendar days) ---
-      function nyParts(dateObj) {
-        var fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" });
-        var parts = fmt.formatToParts(dateObj);
-        var y = "", m = "", d = "";
-        parts.forEach(function (p) {
-          if (p.type === "year") y = p.value;
-          if (p.type === "month") m = p.value;
-          if (p.type === "day") d = p.value;
-        });
-        return { y: parseInt(y, 10), m: parseInt(m, 10), d: parseInt(d, 10) };
-      }
-      function nyKey(dateObj) {
-        var p = nyParts(dateObj);
-        return p.y + "-" + String(p.m).padStart(2, "0") + "-" + String(p.d).padStart(2, "0");
-      }
-      function keyFromYMD(y, m, d) {
-        return y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");
-      }
-      function formatDayLabel(key) {
-        // key is YYYY-MM-DD in NY time; render at noon UTC to stay on the same calendar date
-        var dt = new Date(key + "T12:00:00Z");
-        return dt.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
-      }
-      function formatDayFull(key) {
-        var dt = new Date(key + "T12:00:00Z");
-        return dt.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" });
-      }
-
-      function renderDayByDay(daily, attempts, unitById) {
-        var card = document.getElementById("daybyday-card");
-        if (!card) return;
-
-        // Per-day totals from study_daily_activity; day may be date or timestamp — normalise to YYYY-MM-DD prefix
-        var byDay = {};
-        (daily || []).forEach(function (row) {
-          var raw = String(row.day || "");
-          var key = raw.slice(0, 10);
-          if (key) byDay[key] = row;
-        });
-
-        // Group sessions by NY calendar day
+        /* day by day, sessions nested (each session renders once) */
         var sessionsByDay = {};
         (attempts || []).forEach(function (a) {
-          if (!a.created_at) return;
-          var k = nyKey(new Date(a.created_at));
+          var k = dayKeyOf(a.created_at);
+          if (!k) return;
           (sessionsByDay[k] = sessionsByDay[k] || []).push(a);
         });
-
-        // Build last 14 NY days, newest first; today always included
-        var now = new Date();
-        var todayParts = nyParts(now);
-        var baseUTC = Date.UTC(todayParts.y, todayParts.m - 1, todayParts.d);
-        var days = [];
-        for (var i = 0; i < 14; i++) {
-          var dt = new Date(baseUTC - i * 86400000);
-          var key = keyFromYMD(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
-          days.push({ key: key, index: i });
-        }
-
-        var html = days.map(function (day) {
-          var row = byDay[day.key] || null;
-          var sessions = sessionsByDay[day.key] || [];
+        var dayKeys = [];
+        for (var j = 0; j < 14; j++) dayKeys.push(addDaysKey(today, -j));
+        var html = '<div class="card"><h3>Day by day</h3>';
+        html += dayKeys.map(function (k, idx) {
+          var row = byDay[k] || null;
+          var sessions = sessionsByDay[k] || [];
           var answers = row ? (row.answers || 0) : 0;
           var correct = row ? (row.correct || 0) : 0;
-          var sure = row ? (row.sure_answers != null ? row.sure_answers : null) : null;
-          var guessed = row ? (row.guessed_answers != null ? row.guessed_answers : null) : null;
-          var hasActivity = answers > 0 || sessions.length > 0;
-
-          var relative = "";
-          if (day.index === 0) relative = '<span class="day-relative">Today</span>';
-          else if (day.index === 1) relative = '<span class="day-relative">Yesterday</span>';
-
-          var head = '<div class="day-head"><span class="day-date">' + esc(formatDayLabel(day.key)) + relative + '</span></div>';
-
-          if (!hasActivity) {
-            return '<div class="day-block' + (day.index === 0 ? ' is-today' : '') + '">' + head +
-              '<div class="day-none">No activity</div></div>';
-          }
-
-          var summaryParts = [];
-          if (answers > 0) {
-            var acc = pct(correct, answers);
-            summaryParts.push('<span class="acc-strong">' + answers + (answers === 1 ? ' answer' : ' answers') + '</span>');
-            if (acc !== null) summaryParts.push('<span class="acc-strong">' + acc + '% correct</span> (' + correct + '/' + answers + ')');
-            if (sure !== null || guessed !== null) {
-              var splitBits = [];
-              if (sure !== null) splitBits.push(sure + ' sure');
-              if (guessed !== null) splitBits.push(guessed + ' guessed');
-              if (splitBits.length) summaryParts.push('<span class="split">' + esc(splitBits.join(' · ')) + '</span>');
+          var has = answers > 0 || sessions.length > 0;
+          var relative = idx === 0 ? '<span class="day-relative">Today</span>' : (idx === 1 ? '<span class="day-relative">Yesterday</span>' : "");
+          var out = '<div class="day-block' + (idx === 0 ? " is-today" : "") + '">' +
+            '<div class="day-head"><span class="day-date">' + esc(formatDayLabel(k)) + relative + "</span></div>";
+          if (!has) {
+            out += '<div class="day-none">No activity</div>';
+          } else {
+            var parts = [];
+            if (answers > 0) {
+              var acc = pctOf(correct, answers);
+              parts.push('<span class="acc-strong">' + answers + (answers === 1 ? " answer" : " answers") + "</span>");
+              if (acc !== null) parts.push('<span class="acc-strong">' + acc + "% correct</span> (" + correct + "/" + answers + ")");
+              var split = [];
+              if (row.sure_answers != null) split.push(row.sure_answers + " sure");
+              if (row.guessed_answers != null) split.push(row.guessed_answers + " guessed");
+              if (split.length) parts.push(esc(split.join(" · ")));
             }
-          } else if (sessions.length > 0) {
-            summaryParts.push(sessions.length + (sessions.length === 1 ? ' quiz session' : ' quiz sessions'));
+            if (sessions.length > 0) parts.push(sessions.length + (sessions.length === 1 ? " session" : " sessions"));
+            out += '<div class="day-summary">' + parts.join(" · ") + "</div>";
+            if (sessions.length) {
+              out += '<div class="day-sessions">' + sessions.map(function (a) {
+                var isCold = a.mode === "cold-check" || a.unit_id === "cold-check";
+                var unit = !isCold && unitById[a.unit_id] ? unitById[a.unit_id] : null;
+                var title = isCold ? "Cold check" : (unit ? unit.title : a.unit_id);
+                var sub = isCold ? "Cold check" : (unit ? subjectLabel(unit.subject) + " · Unit quiz" : "Unit quiz");
+                var badge = isCold ? '<span class="cold-badge">Cold check</span>' : "";
+                var sp = a.total ? Math.round((a.score / a.total) * 100) : null;
+                var time = "";
+                try {
+                  time = new Date(a.created_at).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" });
+                } catch (e) { time = ""; }
+                return '<div class="day-session-row"><span class="day-session-what">' + esc(title) + badge +
+                  '<span class="day-session-subject">' + esc(sub) + (time ? " · " + esc(time) : "") + '</span></span>' +
+                  '<span class="day-session-score">' + a.score + "/" + a.total +
+                  (sp !== null ? '<span class="pct">' + sp + "%</span>" : "") + "</span></div>";
+              }).join("") + "</div>";
+            }
           }
-          if (sessions.length > 0 && answers > 0) {
-            summaryParts.push(sessions.length + (sessions.length === 1 ? ' session' : ' sessions'));
-          }
-
-          var summaryHtml = summaryParts.length ? '<div class="day-summary">' + summaryParts.join(' · ') + '</div>' : '';
-
-          var sessionsHtml = "";
-          if (sessions.length) {
-            sessionsHtml = '<div class="day-sessions">' + sessions.map(function (a) {
-              var isCold = a.mode === "cold-check" || a.unit_id === "cold-check";
-              var unit = !isCold && unitById[a.unit_id] ? unitById[a.unit_id] : null;
-              var title = isCold ? "Cold check" : (unit ? unit.title : a.unit_id);
-              var subjectLine = "";
-              if (isCold) subjectLine = "Cold check";
-              else if (unit) subjectLine = subjectLabel(unit.subject) + " · Unit quiz";
-              else subjectLine = "Unit quiz";
-              var badge = isCold ? '<span class="cold-badge">Cold check</span>' : '';
-              var scorePct = (a.total ? Math.round((a.score / a.total) * 100) : null);
-              var when = new Date(a.created_at);
-              var timeStr = "";
-              try {
-                timeStr = when.toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" });
-              } catch (e) { timeStr = ""; }
-              return '<div class="day-session-row"><span class="day-session-what">' + esc(title) + badge +
-                '<span class="day-session-subject">' + esc(subjectLine) + (timeStr ? ' · ' + esc(timeStr) : '') + '</span></span>' +
-                '<span class="day-session-score">' + a.score + '/' + a.total +
-                (scorePct !== null ? '<span class="pct">' + scorePct + '%</span>' : '') + '</span></div>';
-            }).join("") + '</div>';
-          }
-
-          return '<div class="day-block' + (day.index === 0 ? ' is-today' : '') + '" title="' + esc(formatDayFull(day.key)) + '">' + head + summaryHtml + sessionsHtml + '</div>';
+          return out + "</div>";
         }).join("");
-
-        card.innerHTML = html;
+        html += "</div>";
+        daysEl.innerHTML = html;
       }
 
-      function renderSessions(attempts, unitById) {
-        var card = document.getElementById("sessions-card");
-        var recent = (attempts || []).slice(0, 10);
-        if (!recent.length) {
-          card.innerHTML = '<p class="quiet">No quiz sessions yet.</p>';
-          return;
-        }
-        card.innerHTML = recent.map(function (a) {
-          var isCold = a.mode === "cold-check" || a.unit_id === "cold-check";
-          var title = isCold ? "Cold check" : (unitById[a.unit_id] ? unitById[a.unit_id].title : a.unit_id);
-          var modeLabel = isCold ? "Cold check" : "Unit quiz";
-          var when = new Date(a.created_at);
-          var dateStr = when.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-          return '<div class="session-row"><span class="session-what">' + esc(title) +
-            '<span class="session-mode">' + esc(modeLabel) + "</span></span>" +
-            '<span class="session-score"><span class="score">' + a.score + "/" + a.total + "</span>" +
-            '<span class="date">' + esc(dateStr) + "</span></span></div>";
-        }).join("");
+      /* ---------- tabs ---------- */
+      var PANELS = ["overview", "grades", "practice", "homework", "activity"];
+      function switchParentTab(name) {
+        PANELS.forEach(function (p) {
+          document.getElementById("panel-" + p).hidden = p !== name;
+        });
+        document.querySelectorAll("[data-ptab]").forEach(function (btn) {
+          btn.classList.toggle("is-active", btn.getAttribute("data-ptab") === name);
+        });
+        window.scrollTo(0, 0);
       }
+      document.getElementById("tab-bar").addEventListener("click", function (e) {
+        var btn = e.target && typeof e.target.closest === "function" ? e.target.closest("[data-ptab]") : null;
+        if (btn) switchParentTab(btn.getAttribute("data-ptab"));
+      });
+
+      /* ---------- boot ----------
+         Note: this page deliberately registers NO service worker of
+         its own — it lives inside the student app's worker scope,
+         which serves it network-first like any navigation. */
+      load("units", "study_units?select=id,subject,title,quarter&order=subject.asc,sort_order.asc");
+      load("mastery", "study_mastery?select=unit_id,answers,correct,days,confident_wrong,state&study_id=eq." + SID);
+      load("topics", "study_topic_mastery?select=unit_id,topic,answers_sure,correct_sure,answers_guessed,correct_guessed,confident_wrong,days_sure&study_id=eq." + SID);
+      load("daily", "study_daily_activity?select=day,answers,correct,sure_answers,guessed_answers&study_id=eq." + SID + "&order=day.desc&limit=90");
+      load("attempts", "study_quiz_attempts?select=unit_id,mode,score,total,created_at&study_id=eq." + SID + "&order=created_at.desc&limit=100");
+      load("grades", "study_course_grades?select=subject,course,term,grade_pct,is_honors,recorded_at&study_id=eq." + SID + "&order=recorded_at.desc");
+      load("weak", "study_weak_topics?select=subject,unit_id,topic,weight,detail,source&study_id=eq." + SID + "&order=weight.desc");
+      load("quizzes", "study_real_quizzes?select=id,subject,title,quiz_date,score,total&order=quiz_date.desc,id.desc");
+      load("quizItems", "study_real_quiz_items?select=id,quiz_id,question_text,her_answer,correct_answer,is_correct,topic&order=id.asc");
+      load("answers", "study_answers?select=unit_id,topic,correct,confidence,created_at&study_id=eq." + SID + "&order=created_at.desc&limit=500");
+      load("hwA", "study_homework_assignments?select=id,study_id,subject,status,created_at,processed_at&study_id=eq." + SID + "&order=created_at.desc&limit=10");
+      load("hwU", "study_homework_uploads?select=id,study_id,subject,status,created_at,processed_at,assignment_id&study_id=eq." + SID + "&order=created_at.desc&limit=10");
+      load("hwF", "study_homework_feedback?select=id,upload_id,assignment_id,study_id,summary,items,created_at&study_id=eq." + SID + "&order=created_at.desc");
+      load("hwC", "study_homework_corrections?select=id,study_id,feedback_id,problem_label,status,created_at,processed_at&study_id=eq." + SID + "&order=created_at.asc");
+      load("hwCR", "study_homework_correction_results?select=id,correction_id,study_id,verdict,note,created_at&study_id=eq." + SID + "&order=created_at.asc");
+      load("assess", "study_assessments?select=id,subject,kind,title,topic,due_date&study_id=eq." + SID + "&order=due_date.asc,subject.asc");
+      renderSections();
     </script>
   </body>
 </html>
