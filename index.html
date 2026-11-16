@@ -420,6 +420,35 @@
         padding: 10px 18px; border-radius: 999px; margin: -4px 0 14px; min-height: 44px;
       }
       .hint-btn:disabled { opacity: 0.55; cursor: default; }
+      /* v19: stall nudge — after 50s unanswered, the Hint button
+         pulses and a one-line tip fades into a slot that was reserved
+         at render time, so the choices never move. */
+      .hint-btn.stall-pulse { animation: hintPulse 1.15s ease-in-out infinite; }
+      @keyframes hintPulse {
+        0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); transform: scale(1); }
+        50% { box-shadow: 0 0 0 8px var(--accent-soft); transform: scale(1.06); }
+      }
+      .stall-tip {
+        min-height: 1.3em; margin: -6px 0 10px; font-size: 0.88rem; font-weight: 800;
+        color: var(--accent-dark); visibility: hidden;
+      }
+      .stall-tip.show { visibility: visible; }
+      /* v19: honesty tap card (inside the answer feedback block;
+         never modal, never blocks the Next button). */
+      .honesty-card {
+        display: none; background: var(--surface); border: 1px solid var(--line);
+        border-left: 5px solid var(--accent); border-radius: 12px;
+        padding: 12px 14px; margin-top: 14px;
+      }
+      .honesty-card.show { display: block; }
+      .honesty-card p { margin: 0 0 10px; font-weight: 800; line-height: 1.45; }
+      .honesty-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+      .honesty-btns button {
+        border: 2px solid var(--accent); background: var(--accent-soft); color: var(--accent-dark);
+        font-family: inherit; font-size: 0.92rem; font-weight: 900; cursor: pointer;
+        padding: 9px 14px; border-radius: 999px; min-height: 44px;
+      }
+      .honesty-btns button:disabled { opacity: 0.55; cursor: default; }
       .hint-panel {
         display: none; background: var(--surface); border: 1px solid var(--line);
         border-left: 5px solid var(--accent); border-radius: 12px;
@@ -679,7 +708,7 @@
 
         <button class="big-btn secondary" id="btn-review-all">Review all flashcards<small id="review-all-sub">A mixed session of every card that's due today</small></button>
 
-        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v18
+        <p class="build-stamp" id="build-stamp">App build · Nov 9, 2026 · shell v19
           <span class="stamp-hint">Open the menu (top right) and tap Refresh app to check for a new version — press &amp; hold it only if the app seems stuck.</span>
         </p>
       </section>
@@ -804,6 +833,7 @@
         <div class="repair-intro" id="quiz-repair-intro" role="note"></div>
         <p class="q-prompt" id="quiz-prompt"></p>
         <button class="hint-btn" id="btn-hint" type="button" style="display:none">Hint</button>
+        <div class="stall-tip" id="quiz-stall-tip" style="display:none" aria-live="polite">Stuck? A hint can point you the right way.</div>
         <div class="hint-panel" id="quiz-hint-panel">
           <div class="hint-label">Hint</div>
           <p id="quiz-hint-text"></p>
@@ -822,6 +852,13 @@
           <p id="quiz-explain-text"></p>
           <p id="quiz-confidence-note" class="confidence-note" style="display:none"></p>
           <button class="review-cards-btn" id="btn-review-question-cards" type="button">Review this unit's flashcards</button>
+          <div class="honesty-card" id="honesty-card">
+            <p id="honesty-text">Quick check — did you look this up anywhere?</p>
+            <div class="honesty-btns" id="honesty-btns">
+              <button type="button" id="btn-honesty-no">No, I knew it</button>
+              <button type="button" id="btn-honesty-yes">Yes, I checked</button>
+            </div>
+          </div>
         </div>
         <button class="next-btn" id="btn-next">Next question →</button>
       </section>
@@ -858,7 +895,7 @@
       </div>
       <button class="sheet-row" id="btn-refresh" type="button" aria-label="Refresh the app. Tap to check for a new version. Press and hold to clear the cached app and reload fresh.">
         <span class="sheet-row-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="refresh-arrow" d="M20 12a8 8 0 1 1-2.34-5.66M20 3v4h-4" /></svg></span>
-        <span class="sheet-row-text"><span class="sheet-row-title">Refresh app</span><span class="sheet-row-sub">shell v18</span></span>
+        <span class="sheet-row-text"><span class="sheet-row-title">Refresh app</span><span class="sheet-row-sub">shell v19</span></span>
       </button>
       <button class="sheet-row" id="btn-reminders" type="button" aria-label="Study reminders: off. Tap to turn on study reminders on this phone.">
         <span class="sheet-row-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="bulb-glass" d="M12 2.8a6.2 6.2 0 0 1 3.6 11.2c-.6.5-1 1-1 1.8v.7H9.4v-.7c0-.8-.4-1.3-1-1.8A6.2 6.2 0 0 1 12 2.8z" /><path class="bulb-base" d="M9.6 19h4.8M10.2 21.2h3.6" /><path class="bulb-rays" d="M5 3.6 3.5 2.1M19 3.6l1.5-1.5M3.7 9.2H1.7M22.3 9.2h-2" /><path class="bulb-slash" d="M4.5 4.5l15 15" /></svg></span>
@@ -1096,8 +1133,9 @@
       }
 
       function syncAnswer(unitId, qIdx, picked, right, topic, confidence, hintUsed) {
-        sbFetch("/study_answers", {
+        var p = sbFetch("/study_answers", {
           method: "POST",
+          headers: { "Prefer": "return=representation" },
           body: JSON.stringify({
             study_id: STUDY_ID,
             unit_id: unitId,
@@ -1109,6 +1147,18 @@
             hint_used: !!hintUsed
           })
         });
+        /* v19: resolve to the inserted row's id (or null when the
+           sync failed / returned nothing) so the honesty tap can
+           mark THIS answer as looked up via the mark_looked_up RPC. */
+        if (!p || typeof p.then !== "function") return Promise.resolve(null);
+        return p.then(function (r) {
+          if (!r || !r.ok) return null;
+          return r.json();
+        }).then(function (rows) {
+          if (rows && rows.length && typeof rows[0].id === "number") return rows[0].id;
+          if (rows && typeof rows.id === "number") return rows.id;
+          return null;
+        }).catch(function () { return null; });
       }
 
       function syncAttempt(unitId, score, total, mode) {
@@ -3243,6 +3293,9 @@
       var qDisplayCorrect = -1; /* display position of the correct choice */
       var qSelectedDisplay = -1;
       var qHintRevealed = false;
+      var qStallTimer = null;      /* v19: stall hint nudge timer for the current question */
+      var qSureEligibleCount = 0;  /* v19: honesty tap — eligible ("sure", no hint) answers this session */
+      var qAnswerIdPromise = null; /* v19: promise of the current answer's study_answers id */
       var qReviewUnitId = null;
       var repairQueue = [];  /* wrong + "I know this" answers awaiting the one fix-it round */
       var inRepairRound = false;
@@ -3263,12 +3316,103 @@
         var item = quizItems[qPos];
         var hint = questionHint(item);
         if (!hint) return;
+        clearStallNudge();
         qHintRevealed = true;
         document.getElementById("quiz-hint-text").textContent = hint;
         document.getElementById("quiz-hint-panel").classList.add("show");
         var btn = document.getElementById("btn-hint");
         btn.disabled = true;
         btn.style.display = "none";
+      }
+
+      /* ---------- v19: stall hint nudge ----------
+         If a question with a hint sits unanswered for 50 seconds,
+         the Hint button pulses and a one-line tip appears in the
+         slot reserved under it. Pure encouragement — nothing about
+         the question, the choices, or grading changes. */
+      function clearStallNudge() {
+        if (qStallTimer) { clearTimeout(qStallTimer); qStallTimer = null; }
+        var btn = document.getElementById("btn-hint");
+        if (btn) btn.classList.remove("stall-pulse");
+        var tip = document.getElementById("quiz-stall-tip");
+        if (tip) tip.classList.remove("show");
+      }
+
+      function armStallNudge(item) {
+        clearStallNudge();
+        if (!questionHint(item)) return;
+        qStallTimer = setTimeout(function () {
+          qStallTimer = null;
+          if (qAnswered || qHintRevealed) return;
+          if (!questionHint(quizItems[qPos])) return;
+          var btn = document.getElementById("btn-hint");
+          if (btn) btn.classList.add("stall-pulse");
+          var tip = document.getElementById("quiz-stall-tip");
+          if (tip) tip.classList.add("show");
+        }, 50000);
+      }
+
+      /* ---------- v19: honesty tap ----------
+         Every 3rd answer given with "I know this" and no hint earns
+         a small, optional card in the feedback area: "Quick check —
+         did you look this up anywhere?" Saying yes marks the answer
+         as looked up (it then counts as practice, like a guessed
+         answer) and honesty is thanked, never scolded. The card is
+         a plain block in the feedback flow — it never blocks Next. */
+      function hideHonestyCard() {
+        var card = document.getElementById("honesty-card");
+        if (!card) return;
+        card.classList.remove("show");
+        var text = document.getElementById("honesty-text");
+        if (text) text.textContent = "Quick check — did you look this up anywhere?";
+        var btns = document.getElementById("honesty-btns");
+        if (btns) btns.style.display = "";
+        var no = document.getElementById("btn-honesty-no");
+        var yes = document.getElementById("btn-honesty-yes");
+        if (no) no.disabled = false;
+        if (yes) yes.disabled = false;
+      }
+
+      function maybeShowHonestyCard(confidence, hintUsed) {
+        if (confidence !== "sure" || hintUsed) return;
+        qSureEligibleCount++;
+        if (qSureEligibleCount % 3 !== 0) return;
+        var card = document.getElementById("honesty-card");
+        if (card) card.classList.add("show");
+      }
+
+      function honestyYes() {
+        var no = document.getElementById("btn-honesty-no");
+        var yes = document.getElementById("btn-honesty-yes");
+        if (no) no.disabled = true;
+        if (yes) yes.disabled = true;
+        var done = function (ok) {
+          if (ok) {
+            var text = document.getElementById("honesty-text");
+            if (text) text.textContent = "Thanks for being honest — this one counts as practice.";
+            var btns = document.getElementById("honesty-btns");
+            if (btns) btns.style.display = "none";
+          } else {
+            /* Fail silently: restore the buttons so the card can
+               simply be dismissed with "No, I knew it". */
+            if (no) no.disabled = false;
+            if (yes) yes.disabled = false;
+          }
+        };
+        if (!qAnswerIdPromise) { done(false); return; }
+        qAnswerIdPromise.then(function (id) {
+          if (id === null || typeof id === "undefined") { done(false); return; }
+          var p = sbFetch("/rpc/mark_looked_up", {
+            method: "POST",
+            body: JSON.stringify({ p_answer_id: id })
+          });
+          if (!p || typeof p.then !== "function") { done(false); return; }
+          p.then(function (r) { done(!!(r && r.ok)); }, function () { done(false); });
+        }, function () { done(false); });
+      }
+
+      function honestyNo() {
+        hideHonestyCard();
       }
 
       function openQuestionFlashcards(unitId) {
@@ -3441,6 +3585,7 @@
       function resetRepairState() {
         repairQueue = [];
         inRepairRound = false;
+        qSureEligibleCount = 0; /* v19: honesty tap counter is per quiz session */
       }
 
       function queueConfidenceRepair(item, displayOrder) {
@@ -3776,6 +3921,10 @@
         hintPanel.classList.remove("show");
         hintBtn.disabled = false;
         hintBtn.style.display = questionHint(item) ? "" : "none";
+        hintBtn.classList.remove("stall-pulse");
+        var stallTip = document.getElementById("quiz-stall-tip");
+        stallTip.classList.remove("show");
+        stallTip.style.display = questionHint(item) ? "" : "none";
         var reviewBtn = document.getElementById("btn-review-question-cards");
         reviewBtn.classList.remove("show");
         reviewBtn.disabled = false;
@@ -3805,6 +3954,9 @@
         var note = document.getElementById("quiz-confidence-note");
         note.style.display = "none"; note.textContent = "";
         document.getElementById("btn-next").classList.remove("show");
+        hideHonestyCard();
+        qAnswerIdPromise = null;
+        armStallNudge(item);
       }
 
       function selectChoice(displayIdx) {
@@ -3822,12 +3974,13 @@
         if (qSelectedDisplay < 0) return; /* must pick a choice first */
         if (confidence !== "sure" && confidence !== "guessing") return;
         qAnswered = true;
+        clearStallNudge();
         var item = quizItems[qPos];
         var pickedOriginal = qDisplayOrder[qSelectedDisplay];
         var right = pickedOriginal === item.correct;
         /* Verification invariant: right === (qSelectedDisplay === qDisplayCorrect) */
         if (right) qScore++;
-        syncAnswer(item.unitId, item.qIdx, pickedOriginal, right, item.topic, confidence, qHintRevealed);
+        qAnswerIdPromise = syncAnswer(item.unitId, item.qIdx, pickedOriginal, right, item.topic, confidence, qHintRevealed);
         recordLocalAnswer(item.unitId, item.topic, right, confidence);
         if (!right && confidence === "sure") queueConfidenceRepair(item, qDisplayOrder);
         qResults.push({ unitId: item.unitId, qIdx: item.qIdx, variantOf: (typeof item.variantOf === "number" ? item.variantOf : null), unitTitle: item.unitTitle, subject: item.subject, topic: item.topic, prompt: item.prompt, correct: right, confidence: confidence });
@@ -3865,6 +4018,7 @@
         var hasNextQuestion = qPos < quizItems.length - 1 || (!inRepairRound && repairQueue.length > 0);
         next.textContent = hasNextQuestion ? "Next question →" : "See my score →";
         next.classList.add("show");
+        maybeShowHonestyCard(confidence, qHintRevealed);
       }
 
       function renderResultsList() {
@@ -3975,7 +4129,7 @@
          The build stamp printed at the bottom of the home view; bump
          it (with the worker's CACHE_NAME) whenever the shell changes
          so "am I on the latest?" is answerable at a glance. */
-      var BUILD_STAMP = "Nov 9, 2026 · shell v18";
+      var BUILD_STAMP = "Nov 9, 2026 · shell v19";
 
       var appToastTimer = null;
       function showAppToast(text, holdMs) {
@@ -4816,6 +4970,8 @@
       document.getElementById("btn-conf-sure").addEventListener("click", function () { answer("sure"); });
       document.getElementById("btn-conf-guess").addEventListener("click", function () { answer("guessing"); });
       document.getElementById("btn-hint").addEventListener("click", revealHint);
+      document.getElementById("btn-honesty-no").addEventListener("click", honestyNo);
+      document.getElementById("btn-honesty-yes").addEventListener("click", honestyYes);
       document.getElementById("btn-review-question-cards").addEventListener("click", function () {
         openQuestionFlashcards(qReviewUnitId);
       });
@@ -4827,6 +4983,7 @@
       document.getElementById("btn-cards-back").addEventListener("click", goBackFromStudy);
       document.getElementById("btn-done-back").addEventListener("click", goBackFromStudy);
       document.getElementById("btn-quiz-back").addEventListener("click", function () {
+        clearStallNudge();
         if (quizMode === "cold-check") {
           updateHomeBadges();
           updateReviewAllSub();
